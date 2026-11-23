@@ -422,6 +422,64 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script>
+    // Safety net: if the app fails to start (for example a half-updated
+    // offline copy right after an update), clear the offline copy and reload
+    // once. If it still fails, show a "Reload app" button — never a blank page.
+    (function () {
+      function clearOfflineCopy() {
+        var jobs = [];
+        if (window.caches) {
+          jobs.push(caches.keys().then(function (names) {
+            return Promise.all(names.filter(function (name) { return name.indexOf('ergosafe-v') === 0; })
+              .map(function (name) { return caches.delete(name); }));
+          }));
+        }
+        if (navigator.serviceWorker) {
+          jobs.push(navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) { return registration.unregister(); }));
+          }));
+        }
+        return Promise.all(jobs).catch(function () {});
+      }
+      function showReloadMessage() {
+        if (document.getElementById('startup-error')) return;
+        var box = document.createElement('div');
+        box.id = 'startup-error';
+        box.setAttribute('role', 'alert');
+        box.style.cssText = 'margin:24px 16px;padding:18px;border:2px solid #b42318;border-radius:14px;background:#fff;font:16px system-ui,sans-serif;color:#13201f';
+        box.innerHTML = '<h2 style="margin:0 0 8px;font-size:1.2rem">ErgoSafe needs to refresh</h2>' +
+          '<p style="margin:0 0 12px">The app was just updated. Tap below to load the new version. Your saved workers and assessments are kept.</p>' +
+          '<button type="button" style="min-height:48px;padding:0 18px;border-radius:12px;border:0;background:#0f5c5c;color:#fff;font:inherit;font-weight:700">Reload app</button>';
+        box.querySelector('button').onclick = function () {
+          clearOfflineCopy().then(function () { location.reload(); });
+        };
+        document.body.insertBefore(box, document.body.firstChild);
+      }
+      window.__ergosafeRecover = function () {
+        if (window.__ergosafeStarted) return;
+        var alreadyTried = false;
+        try {
+          alreadyTried = sessionStorage.getItem('ergosafe-recovered') === '1';
+          sessionStorage.setItem('ergosafe-recovered', '1');
+        } catch (error) {}
+        if (alreadyTried) {
+          showReloadMessage();
+        } else {
+          clearOfflineCopy().then(function () { location.reload(); });
+        }
+      };
+      // Errors while loading or starting the app code.
+      window.addEventListener('error', function (event) {
+        var isScriptProblem = event instanceof ErrorEvent || (event.target && event.target.tagName === 'SCRIPT');
+        if (isScriptProblem && !window.__ergosafeStarted) window.__ergosafeRecover();
+      }, true);
+      // Last resort: still not started 15 s after the page finished loading.
+      window.addEventListener('load', function () {
+        setTimeout(function () { if (!window.__ergosafeStarted) showReloadMessage(); }, 15000);
+      });
+    })();
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

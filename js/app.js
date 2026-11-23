@@ -105,10 +105,21 @@ function start() {
   showView(viewFromHash());
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(function (error) {
+    // updateViaCache: 'none' — always check the server for a new sw.js.
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(function (error) {
       console.warn('Offline support not available:', error);
     });
   }
 }
 
-start();
+try {
+  start();
+  // Tell the safety net in index.html that the app started fine.
+  window.__ergosafeStarted = true;
+  try { sessionStorage.removeItem('ergosafe-recovered'); } catch (error) { /* ignore */ }
+} catch (error) {
+  console.error('ErgoSafe failed to start:', error);
+  if (window.__ergosafeRecover) {
+    window.__ergosafeRecover();
+  }
+}

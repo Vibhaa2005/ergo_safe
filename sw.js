@@ -1,8 +1,13 @@
 // sw.js — service worker: lets the app install and work offline.
-// App files: served from cache, refreshed in the background.
-// Pose model + MediaPipe files (other websites): cached after first use.
+//
+// App files: NETWORK FIRST. When online, every file comes fresh from the
+// server (revalidated, never a stale browser-cache copy), so old and new
+// files can never be mixed after an update. The saved copy is used only
+// when offline.
+// Pose model + MediaPipe files (other websites): cached after first use —
+// they are fixed for a version and large, so they are read from the cache.
 
-const CACHE_VERSION = 'ergosafe-v9';
+const CACHE_VERSION = 'ergosafe-v10';
 const RUNTIME_CACHE = 'ergosafe-runtime-v1';
 
 const APP_FILES = [
@@ -39,7 +44,11 @@ const RUNTIME_HOSTS = ['cdn.jsdelivr.net', 'storage.googleapis.com'];
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(function (cache) { return cache.addAll(APP_FILES); })
+    caches.open(CACHE_VERSION).then(function (cache) {
+      // cache: 'reload' skips the browser's HTTP cache so the saved copy is
+      // the version that was just published.
+      return cache.addAll(APP_FILES.map(function (path) { return new Request(path, { cache: 'reload' }); }));
+    })
   );
   self.skipWaiting();
 });
@@ -53,9 +62,10 @@ self.addEventListener('activate', function (event) {
         }
         return null;
       }));
+    }).then(function () {
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', function (event) {
@@ -65,7 +75,7 @@ self.addEventListener('fetch', function (event) {
   }
   const url = new URL(request.url);
 
-  // Pose model and MediaPipe: cache first (they never change for a version).
+  // Pose model and MediaPipe: cache first.
   if (RUNTIME_HOSTS.indexOf(url.hostname) !== -1) {
     event.respondWith(
       caches.open(RUNTIME_CACHE).then(function (cache) {
@@ -85,20 +95,24 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Own files: answer from cache straight away, update cache from network.
+  // Own files: network first, saved copy only when offline.
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.open(CACHE_VERSION).then(function (cache) {
-        return cache.match(request, { ignoreSearch: true }).then(function (cached) {
-          const networkFetch = fetch(request).then(function (response) {
-            if (response.ok) {
-              cache.put(request, response.clone());
+      fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(function (response) {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_VERSION).then(function (cache) { cache.put(request, copy); });
+        }
+        return response;
+      }).catch(function () {
+        return caches.open(CACHE_VERSION).then(function (cache) {
+          return cache.match(request, { ignoreSearch: true }).then(function (cached) {
+            if (cached) {
+              return cached;
             }
-            return response;
-          }).catch(function () {
-            return cached;
+            // Offline page loads (e.g. index.html#risk) fall back to the saved app page.
+            return request.mode === 'navigate' ? cache.match('./index.html') : Response.error();
           });
-          return cached || networkFetch;
         });
       })
     );
