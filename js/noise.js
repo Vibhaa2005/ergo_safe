@@ -5,7 +5,7 @@
 import * as storage from './storage.js';
 import {
   NOISE_STANDARDS, allowedHours, dailyDosePercent, timeWeightedAverage,
-  equivalentLevel, doseStatus, requiredProtectorNrr, aWeightingDb,
+  equivalentLevel, doseStatus, aWeightingDb, generateNoiseActions,
 } from './noiseMath.js';
 import { riskBadge, escapeHtml, showToast, formatHours } from './ui.js';
 
@@ -77,6 +77,11 @@ export function initNoiseView() {
   elements.resetCalibrationButton.addEventListener('click', resetCalibration);
   elements.standardSelect.addEventListener('change', function () {
     storage.saveSettings({ noiseStandard: elements.standardSelect.value });
+  });
+  document.getElementById('noise-reassess-banner').addEventListener('click', function (event) {
+    if (event.target.closest('[data-cancel-noise-reassess]')) {
+      storage.saveSettings({ noiseBaselineId: null });
+    }
   });
   elements.exposureRows.addEventListener('click', function (event) {
     const button = event.target.closest('[data-remove-index]');
@@ -336,7 +341,67 @@ function getDraftEntries() {
 }
 
 function saveDraftEntries(entries) {
-  storage.saveSettings({ noiseDraft: entries });
+  const changes = { noiseDraft: entries };
+  // Start the "time taken" clock when the first zone is added.
+  if (entries.length > 0 && !storage.getSettings().noiseDraftStartedAt) {
+    changes.noiseDraftStartedAt = Date.now();
+  }
+  storage.saveSettings(changes);
+}
+
+function findNoiseAssessment(assessmentId) {
+  for (const assessment of storage.getNoiseAssessments()) {
+    if (assessment.id === assessmentId) return assessment;
+  }
+  return null;
+}
+
+// Called from the Home and Risk screens: "Re-assess after fix".
+// Loads the original zones so the user can update the levels / hours that
+// the fix changed (e.g. a machine enclosure, job rotation).
+export function prepareNoiseReassessment(assessmentId) {
+  const baseline = findNoiseAssessment(assessmentId);
+  if (!baseline) {
+    return;
+  }
+  const entries = [];
+  for (const entry of baseline.entries) {
+    entries.push(Object.assign({}, entry));
+  }
+  const changes = { noiseDraft: entries, noiseBaselineId: baseline.id, noiseDraftStartedAt: Date.now(), noiseStandard: baseline.standard };
+  if (baseline.workerId) {
+    changes.activeWorkerId = baseline.workerId;
+  }
+  storage.saveSettings(changes);
+  window.location.hash = '#noise';
+  window.scrollTo(0, 0);
+}
+
+function renderNoiseReassessBanner(analysis) {
+  const banner = document.getElementById('noise-reassess-banner');
+  const baselineId = storage.getSettings().noiseBaselineId;
+  const baseline = baselineId ? findNoiseAssessment(baselineId) : null;
+  if (!baseline) {
+    banner.hidden = true;
+    banner.innerHTML = '';
+    return;
+  }
+  let comparison = '';
+  if (analysis) {
+    const before = baseline.nioshDosePercent;
+    const now = analysis.results.niosh.dosePercent;
+    const change = before === 0 ? 0 : ((before - now) / before) * 100;
+    let verdict;
+    if (now < before) verdict = riskBadge('low', 'Improved ' + change.toFixed(0) + '%');
+    else if (now === before) verdict = riskBadge('medium', 'No change yet');
+    else verdict = riskBadge('high', 'Worse by ' + Math.abs(change).toFixed(0) + '%');
+    comparison = '<div class="comparison"><span>Before fix: <strong>' + before.toFixed(0) + '%</strong></span><span aria-hidden="true">→</span>' +
+      '<span>Now: <strong>' + now.toFixed(0) + '%</strong> (NIOSH dose)</span>' + verdict + '</div>';
+  }
+  banner.hidden = false;
+  banner.innerHTML = '<p><strong>Re-assessing after a fix:</strong> noise for ' + escapeHtml(baseline.workerName) +
+    '. Update the zones the fix changed — re-measure the level, or change the hours.</p>' + comparison +
+    '<button type="button" class="link-button" data-cancel-noise-reassess>Cancel re-assessment</button>';
 }
 
 function addMeasuredLevel() {
@@ -422,12 +487,14 @@ function renderExposure() {
   elements.exposureRows.innerHTML = rows;
 
   if (entries.length === 0) {
+    renderNoiseReassessBanner(null);
     elements.exposureResults.innerHTML = '';
     elements.recommendations.innerHTML = '<li class="recommendation"><p>Measure or add the zones the worker spends time in to see their daily dose.</p></li>';
     return;
   }
 
   const analysis = analyseExposure(entries);
+  renderNoiseReassessBanner(analysis);
   const selected = analysis.results[standard.key];
   const otherKey = standard.key === 'niosh' ? 'india' : 'niosh';
   const other = analysis.results[otherKey];
@@ -451,42 +518,16 @@ function renderExposure() {
   renderNoiseRecommendations(entries, analysis, standard);
 }
 
+const CONTROL_SHORT = { elimination: 'Eliminate', engineering: 'Engineering control', administrative: 'Organise the work', ppe: 'Protective equipment' };
+
 function renderNoiseRecommendations(entries, analysis, standard) {
-  const selected = analysis.results[standard.key];
-  const items = [];
-  function add(level, title, text) {
-    items.push('<li class="recommendation"><div class="recommendation-head">' + riskBadge(level, title) + '</div><p>' + escapeHtml(text) + '</p></li>');
+  const actions = generateNoiseActions(entries, standard.key);
+  let html = '';
+  for (const action of actions) {
+    html += '<li class="recommendation"><div class="recommendation-head">' + riskBadge(action.priority, CONTROL_SHORT[action.control]) +
+      '<strong>' + escapeHtml(action.bodyPart) + '</strong></div><p class="recommendation-issue">' + escapeHtml(action.issue) + '</p><p>' + escapeHtml(action.action) + '</p></li>';
   }
-
-  // Loudest zone drives most of the dose.
-  let loudest = entries[0];
-  for (const entry of entries) {
-    if (entry.levelDb > loudest.levelDb) loudest = entry;
-  }
-
-  for (const entry of entries) {
-    if (entry.levelDb > standard.ceiling) {
-      add('veryhigh', 'Stop', '"' + entry.zone + '" is above ' + standard.ceiling + ' dB(A). Nobody should enter without hearing protection, and only briefly.');
-    }
-  }
-
-  if (selected.dosePercent > 100) {
-    add('high', 'Eliminate / engineer', 'Reduce noise at the source in "' + loudest.zone + '" (' + loudest.levelDb.toFixed(0) + ' dB(A)): maintain and balance machines, fit silencers and anti-vibration mounts, enclose or screen the machine, add sound-absorbing panels.');
-    add('high', 'Organise the work', 'Limit time in "' + loudest.zone + '" to ' + formatHours(allowedHours(loudest.levelDb, standard)) + ' per shift; rotate workers; move tasks that do not need the machine to a quieter area.');
-  }
-  if (selected.dosePercent >= 50) {
-    const nioshTwa = analysis.results.niosh.twa;
-    const nrr = requiredProtectorNrr(nioshTwa);
-    if (nrr !== null) {
-      const protectorType = nrr > 33 ? 'earplugs and earmuffs together' : (nrr > 25 ? 'high-attenuation earmuffs or well-fitted foam earplugs' : 'earplugs or earmuffs');
-      add('medium', 'Protect hearing', 'Wear ' + protectorType + ' rated NRR ' + nrr + ' or more (field-derated to bring the ear level to about 80 dB(A)). Train workers to fit them properly — a badly fitted plug gives little protection.');
-    }
-    add('medium', 'Monitor', 'Mark zones above 85 dB(A) as hearing-protection areas and arrange a hearing test (audiometry) every year.');
-  }
-  if (selected.dosePercent < 50) {
-    add('low', 'Acceptable', 'Daily dose is under half the limit. Re-measure when machines, layout or shift pattern change.');
-  }
-  elements.recommendations.innerHTML = items.join('');
+  elements.recommendations.innerHTML = html;
 }
 
 function saveNoiseAssessment() {
@@ -515,10 +556,12 @@ function saveNoiseAssessment() {
     riskLevel: selected.status.riskLevel,
     statusLabel: selected.status.label,
     calibration: storage.getSettings().microphoneCalibration,
+    baselineId: storage.getSettings().noiseBaselineId || null,
+    durationSeconds: storage.getSettings().noiseDraftStartedAt ? Math.round((Date.now() - storage.getSettings().noiseDraftStartedAt) / 1000) : null,
   };
   if (storage.saveNoiseAssessment(assessment)) {
-    saveDraftEntries([]);
-    showToast('Noise assessment saved.');
+    storage.saveSettings({ noiseDraft: [], noiseBaselineId: null, noiseDraftStartedAt: null });
+    showToast(assessment.baselineId ? 'Re-assessment saved — see the before/after on the Risk screen.' : 'Noise assessment saved.');
   } else {
     showToast('Could not save — device storage is full or blocked.');
   }

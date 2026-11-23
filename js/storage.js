@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   postureAssessments: 'ergosafe.postureAssessments',
   noiseAssessments: 'ergosafe.noiseAssessments',
   feedbackResponses: 'ergosafe.feedbackResponses',
+  actionStatuses: 'ergosafe.actionStatuses',
   settings: 'ergosafe.settings',
 };
 
@@ -158,6 +159,23 @@ export function deleteFeedbackResponse(responseId) {
   return deleteItemFromList(STORAGE_KEYS.feedbackResponses, responseId);
 }
 
+// ---------- action plan status (done / open) ----------
+
+export function getActionStatuses() {
+  const statuses = readValue(STORAGE_KEYS.actionStatuses, {});
+  return statuses && typeof statuses === 'object' ? statuses : {};
+}
+
+export function setActionStatus(actionKey, done) {
+  const statuses = getActionStatuses();
+  if (done) {
+    statuses[actionKey] = { done: true, date: new Date().toISOString() };
+  } else {
+    delete statuses[actionKey];
+  }
+  return writeValue(STORAGE_KEYS.actionStatuses, statuses);
+}
+
 // ---------- settings ----------
 
 export function getSettings() {
@@ -179,6 +197,7 @@ export function exportAllData() {
     postureAssessments: getPostureAssessments(),
     noiseAssessments: getNoiseAssessments(),
     feedbackResponses: getFeedbackResponses(),
+    actionStatuses: getActionStatuses(),
   };
 }
 
@@ -187,5 +206,6 @@ export function clearAllData() {
   writeValue(STORAGE_KEYS.postureAssessments, []);
   writeValue(STORAGE_KEYS.noiseAssessments, []);
   writeValue(STORAGE_KEYS.feedbackResponses, []);
-  saveSettings({ activeWorkerId: null });
+  writeValue(STORAGE_KEYS.actionStatuses, {});
+  saveSettings({ activeWorkerId: null, noiseDraft: [], noiseBaselineId: null, noiseDraftStartedAt: null });
 }

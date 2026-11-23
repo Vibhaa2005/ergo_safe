@@ -8,6 +8,7 @@ import { initWorkersView, refreshWorkersView } from './workers.js';
 import { initPostureView, refreshPostureView, leavePostureView } from './posture.js';
 import { initNoiseView, refreshNoiseView, leaveNoiseView } from './noise.js';
 import { initFeedbackView, refreshFeedbackView } from './feedback.js';
+import { initProfileView, refreshProfileView } from './profile.js';
 import { escapeHtml } from './ui.js';
 
 const VIEWS = {
@@ -15,6 +16,7 @@ const VIEWS = {
   workers: { refresh: refreshWorkersView, leave: null },
   posture: { refresh: refreshPostureView, leave: leavePostureView },
   noise: { refresh: refreshNoiseView, leave: leaveNoiseView },
+  risk: { refresh: refreshProfileView, leave: null },
   feedback: { refresh: refreshFeedbackView, leave: null },
 };
 
@@ -70,6 +72,7 @@ function start() {
   initPostureView();
   initNoiseView();
   initFeedbackView();
+  initProfileView();
 
   document.getElementById('active-worker-select').addEventListener('change', function (event) {
     storage.saveSettings({ activeWorkerId: event.target.value || null });

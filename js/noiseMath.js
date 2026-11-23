@@ -93,6 +93,68 @@ export function requiredProtectorNrr(twaDb) {
   return Math.ceil(attenuationNeeded * 2 + 7);
 }
 
+// ---------- control measures ----------
+
+function hoursText(hours) {
+  if (!isFinite(hours)) return 'no limit';
+  const wholeHours = Math.floor(hours);
+  const minutes = Math.round((hours - wholeHours) * 60);
+  if (wholeHours === 0) return minutes + ' min';
+  return minutes === 0 ? wholeHours + ' h' : wholeHours + ' h ' + minutes + ' min';
+}
+
+// Returns the noise actions for a worker's day, each tagged with its place
+// in the hierarchy of controls:
+//   elimination > engineering > administrative > ppe (protective equipment)
+export function generateNoiseActions(entries, standardKey) {
+  const standard = NOISE_STANDARDS[standardKey] || NOISE_STANDARDS.niosh;
+  const actions = [];
+  if (!entries || entries.length === 0) {
+    return actions;
+  }
+  const dose = dailyDosePercent(entries, standard);
+  const nioshTwa = timeWeightedAverage(dailyDosePercent(entries, NOISE_STANDARDS.niosh), NOISE_STANDARDS.niosh);
+
+  let loudest = entries[0];
+  for (const entry of entries) {
+    if (entry.levelDb > loudest.levelDb) loudest = entry;
+  }
+
+  for (const entry of entries) {
+    if (entry.levelDb > standard.ceiling) {
+      actions.push({ priority: 'veryhigh', control: 'elimination', bodyPart: entry.zone,
+        issue: entry.zone + ' is above the ' + standard.ceiling + ' dB(A) ceiling.',
+        action: 'Remove the worker from this zone or eliminate the noise source; no unprotected entry at all.' });
+    }
+  }
+  if (dose > 100) {
+    actions.push({ priority: 'high', control: 'engineering', bodyPart: loudest.zone,
+      issue: 'Loudest zone ' + loudest.zone + ' at ' + loudest.levelDb.toFixed(0) + ' dB(A) drives the dose.',
+      action: 'Reduce noise at the source: maintain and balance the machine, fit silencers and anti-vibration mounts, enclose or screen it, add sound-absorbing panels.' });
+    actions.push({ priority: 'high', control: 'administrative', bodyPart: loudest.zone,
+      issue: 'Daily noise dose ' + dose.toFixed(0) + '% (limit 100%).',
+      action: 'Limit time in ' + loudest.zone + ' to ' + hoursText(allowedHours(loudest.levelDb, standard)) + ' per shift; rotate workers; move tasks that do not need the machine to a quieter area.' });
+  }
+  if (dose >= 50) {
+    const nrr = requiredProtectorNrr(nioshTwa);
+    if (nrr !== null) {
+      const protectorType = nrr > 33 ? 'earplugs and earmuffs together' : (nrr > 25 ? 'high-attenuation earmuffs or well-fitted foam earplugs' : 'earplugs or earmuffs');
+      actions.push({ priority: 'medium', control: 'ppe', bodyPart: 'Hearing',
+        issue: 'Exposure above the action level (8-hour TWA ' + nioshTwa.toFixed(1) + ' dB(A)).',
+        action: 'Wear ' + protectorType + ' rated NRR ' + nrr + ' or more (field-derated to about 80 dB(A) at the ear). Train workers to fit them properly.' });
+    }
+    actions.push({ priority: 'medium', control: 'administrative', bodyPart: 'Hearing',
+      issue: 'Workers are exposed above the action level.',
+      action: 'Mark zones above 85 dB(A) as hearing-protection areas and arrange a hearing test (audiometry) every year.' });
+  }
+  if (dose < 50) {
+    actions.push({ priority: 'low', control: 'administrative', bodyPart: 'Hearing',
+      issue: 'Daily dose ' + dose.toFixed(0) + '% — under half the limit.',
+      action: 'No change needed. Re-measure when machines, layout or shift pattern change.' });
+  }
+  return actions;
+}
+
 // ---------- A-weighting for the live microphone meter ----------
 
 // A-weighting gain in dB at frequency f (IEC 61672).

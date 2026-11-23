@@ -168,6 +168,7 @@
       <div class="card">
         <h2><span class="step-number">1</span> Capture the posture</h2>
         <p class="hint">Photograph the worker <strong>from the side</strong>, whole body in frame, at the worst moment of the task. Everything stays on this device.</p>
+        <div id="reassess-banner" class="reassess-banner" hidden></div>
         <label class="field">
           <span>Task being assessed</span>
           <input type="text" id="posture-task" autocomplete="off" placeholder="e.g. Lifting cartons from floor pallet">
@@ -269,6 +270,26 @@
             <label class="check"><input type="checkbox" data-factor="repeatedOver4PerMin"> Same action repeated more than 4 times a minute</label>
             <label class="check"><input type="checkbox" data-factor="rapidOrUnstable"> Rapid large changes in posture, or unstable base</label>
           </fieldset>
+
+          <fieldset class="check-group">
+            <legend>When — exposure to this posture</legend>
+            <p class="hint">RULA and REBA score one moment. How long and how often it happens decides the overall risk (likelihood).</p>
+            <div class="form-grid">
+              <label class="field">
+                <span>Hours per shift doing this task</span>
+                <input type="number" id="exposure-hours" min="0.1" max="16" step="0.25" value="2" inputmode="decimal">
+              </label>
+              <label class="field">
+                <span>How often this posture occurs</span>
+                <select id="exposure-frequency">
+                  <option value="rarely">Rarely (less than once an hour)</option>
+                  <option value="occasionally" selected>Occasionally (1–10 times an hour)</option>
+                  <option value="frequently">Frequently (10–60 times an hour)</option>
+                  <option value="continuously">Continuously, or held for long periods</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
         </div>
 
         <div class="card" id="results-card">
@@ -340,6 +361,7 @@
 
       <div class="card">
         <h2>Daily exposure</h2>
+        <div id="noise-reassess-banner" class="reassess-banner" hidden></div>
         <label class="field">
           <span>Exposure standard</span>
           <select id="noise-standard">
@@ -384,6 +406,12 @@
         </div>
         <p class="hint" id="calibration-offset"></p>
       </div>
+    </section>
+
+    <!-- ============================ RISK PROFILE ============================ -->
+    <section id="view-risk" class="view" aria-labelledby="risk-title" hidden>
+      <h1 id="risk-title" class="view-title">Worker risk profile</h1>
+      <div id="risk-profile"></div>
     </section>
 
     <!-- ============================ FEEDBACK ============================ -->
@@ -440,6 +468,10 @@
     <a href="#noise" data-tab="noise">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
       <span>Noise</span>
+    </a>
+    <a href="#risk" data-tab="risk">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.5"/></svg>
+      <span>Risk</span>
     </a>
     <a href="#feedback" data-tab="feedback">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>

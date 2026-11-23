@@ -6,7 +6,9 @@ import * as storage from './storage.js';
 import { computeRula } from './rula.js';
 import { computeReba } from './reba.js';
 import { generateRecommendations } from './recommendations.js';
-import { analyseExposure } from './noise.js';
+import { analyseExposure, prepareNoiseReassessment } from './noise.js';
+import { prepareReassessment } from './posture.js';
+import { buildWorkerRiskProfile } from './riskModel.js';
 import { susScore } from './feedback.js';
 import { riskBadge, escapeHtml, formatDate, downloadTextFile, toCsv, showToast, RISK_LEVELS } from './ui.js';
 
@@ -37,17 +39,45 @@ export function initDashboardView() {
   });
 
   elements.priorityList.addEventListener('click', function (event) {
+    const reassessButton = event.target.closest('[data-reassess-posture]');
+    if (reassessButton) {
+      prepareReassessment(reassessButton.dataset.reassessPosture);
+      return;
+    }
     const button = event.target.closest('[data-delete-posture]');
     if (button && confirm('Delete this assessment?')) {
       storage.deletePostureAssessment(button.dataset.deletePosture);
     }
   });
   elements.noiseList.addEventListener('click', function (event) {
+    const reassessButton = event.target.closest('[data-reassess-noise]');
+    if (reassessButton) {
+      prepareNoiseReassessment(reassessButton.dataset.reassessNoise);
+      return;
+    }
     const button = event.target.closest('[data-delete-noise]');
     if (button && confirm('Delete this noise assessment?')) {
       storage.deleteNoiseAssessment(button.dataset.deleteNoise);
     }
   });
+  elements.workerTable.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-open-profile]');
+    if (button) {
+      storage.saveSettings({ activeWorkerId: button.dataset.openProfile });
+      window.location.hash = '#risk';
+    }
+  });
+}
+
+function findById(list, id) {
+  for (const item of list) {
+    if (item.id === id) return item;
+  }
+  return null;
+}
+
+function formatSeconds(seconds) {
+  return Math.floor(seconds / 60) + ' min ' + Math.round(seconds % 60) + ' s';
 }
 
 function primaryResult(assessment) {
@@ -68,11 +98,18 @@ export function refreshDashboardView() {
   for (const assessment of noiseAssessments) {
     if (RISK_RANK[assessment.riskLevel] >= RISK_RANK.high) overLimit++;
   }
+  // Average time to complete an assessment (a key efficiency metric).
+  let timedCount = 0;
+  let timedTotal = 0;
+  for (const assessment of postures) {
+    if (assessment.durationSeconds) { timedCount++; timedTotal += assessment.durationSeconds; }
+  }
   elements.summary.innerHTML =
     tile(workers.length, 'Workers', null) +
     tile(postures.length, 'Posture assessments', null) +
     tile(highPostures, 'High-risk postures', highPostures > 0 ? 'high' : 'low') +
-    tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low');
+    tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low') +
+    tile(timedCount ? formatSeconds(timedTotal / timedCount) : '—', 'Average time per posture assessment' + (timedCount ? ' (' + timedCount + ')' : ''), null);
 
   // ---- priority list ----
   const sorted = postures.slice().sort(function (first, second) {
@@ -88,13 +125,24 @@ export function refreshDashboardView() {
       const result = primaryResult(assessment);
       const maxScore = assessment.method === 'rula' ? 7 : 15;
       const topFix = assessment.recommendations && assessment.recommendations.length ? assessment.recommendations[0] : null;
+      const baseline = assessment.baselineId ? findById(postures, assessment.baselineId) : null;
+      let followUpText = '';
+      if (baseline) {
+        const before = primaryResult(baseline).finalScore;
+        const after = (baseline.method === 'rula' ? assessment.rula : assessment.reba).finalScore;
+        const change = before ? ((before - after) / before) * 100 : 0;
+        followUpText = '<p class="follow-up-note">After fix of "' + escapeHtml(baseline.task) + '": ' + baseline.method.toUpperCase() + ' ' + before + ' → ' + after +
+          ' (' + (change >= 0 ? '−' : '+') + Math.abs(change).toFixed(0) + '%)</p>';
+      }
       html += '<article class="assessment-card risk-border-' + result.riskLevel + '">' +
         (assessment.thumbnail ? '<img src="' + assessment.thumbnail + '" alt="Posture photo for ' + escapeHtml(assessment.task) + '">' : '<div class="thumb-placeholder" aria-hidden="true">' + assessment.method.toUpperCase() + '</div>') +
         '<div class="assessment-body">' +
           '<div class="assessment-title"><strong>' + escapeHtml(assessment.task) + '</strong>' + riskBadge(result.riskLevel, RISK_LEVELS[result.riskLevel].label + ' · ' + assessment.method.toUpperCase() + ' ' + result.finalScore + '/' + maxScore) + '</div>' +
           '<p class="hint">' + escapeHtml(assessment.workerName) + ' · ' + formatDate(assessment.date) + '</p>' +
+          followUpText +
           (topFix ? '<p><strong>' + escapeHtml(topFix.bodyPart) + ':</strong> ' + escapeHtml(topFix.action) + '</p>' : '') +
-          '<button type="button" class="link-button" data-delete-posture="' + assessment.id + '">Delete</button>' +
+          '<div class="card-actions"><button type="button" class="button small" data-reassess-posture="' + (assessment.baselineId || assessment.id) + '">Re-assess after fix</button>' +
+          '<button type="button" class="link-button" data-delete-posture="' + assessment.id + '">Delete</button></div>' +
         '</div></article>';
     }
     elements.priorityList.innerHTML = html;
@@ -115,7 +163,10 @@ export function refreshDashboardView() {
           '<p>NIOSH dose <strong>' + assessment.nioshDosePercent.toFixed(0) + '%</strong> · Factories Act dose <strong>' + assessment.indiaDosePercent.toFixed(0) + '%</strong>' +
           (assessment.nioshTwa !== null ? ' · TWA ' + assessment.nioshTwa.toFixed(1) + ' dB(A)' : '') + '</p>' +
           '<p class="hint">' + escapeHtml(zones) + ' · ' + formatDate(assessment.date) + '</p>' +
-          '<button type="button" class="link-button" data-delete-noise="' + assessment.id + '">Delete</button>' +
+          (assessment.baselineId && findById(noiseAssessments, assessment.baselineId)
+            ? '<p class="follow-up-note">After fix: dose ' + findById(noiseAssessments, assessment.baselineId).nioshDosePercent.toFixed(0) + '% → ' + assessment.nioshDosePercent.toFixed(0) + '%</p>' : '') +
+          '<div class="card-actions"><button type="button" class="button small" data-reassess-noise="' + (assessment.baselineId || assessment.id) + '">Re-assess after fix</button>' +
+          '<button type="button" class="link-button" data-delete-noise="' + assessment.id + '">Delete</button></div>' +
         '</div></article>';
     }
     elements.noiseList.innerHTML = html;
@@ -125,7 +176,7 @@ export function refreshDashboardView() {
   if (workers.length === 0) {
     elements.workerTable.innerHTML = '<p class="empty">No workers yet.</p>';
   } else {
-    let html = '<table class="data-table"><thead><tr><th>Worker</th><th>Workstation</th><th>Worst posture</th><th>Noise dose (NIOSH)</th></tr></thead><tbody>';
+    let html = '<table class="data-table"><thead><tr><th>Worker</th><th>Overall risk</th><th>Worst posture</th><th>Noise dose (NIOSH)</th><th><span class="visually-hidden">Profile</span></th></tr></thead><tbody>';
     for (const worker of workers) {
       let worst = null;
       for (const assessment of postures) {
@@ -139,9 +190,12 @@ export function refreshDashboardView() {
           latestNoise = assessment;
         }
       }
-      html += '<tr><td>' + escapeHtml(worker.name) + '</td><td>' + escapeHtml(worker.workstation || '—') + '</td><td>' +
+      const profile = buildWorkerRiskProfile(worker, postures, noiseAssessments);
+      const overall = profile.overallLevel === 'none' ? '—' : riskBadge(profile.overallLevel);
+      html += '<tr><td>' + escapeHtml(worker.name) + '<br><span class="hint">' + escapeHtml(worker.workstation || '') + '</span></td><td>' + overall + '</td><td>' +
         (worst ? riskBadge(primaryResult(worst).riskLevel, worst.method.toUpperCase() + ' ' + primaryResult(worst).finalScore) : '—') + '</td><td>' +
-        (latestNoise ? riskBadge(latestNoise.riskLevel, latestNoise.nioshDosePercent.toFixed(0) + '%') : '—') + '</td></tr>';
+        (latestNoise ? riskBadge(latestNoise.riskLevel, latestNoise.nioshDosePercent.toFixed(0) + '%') : '—') + '</td>' +
+        '<td><button type="button" class="button small" data-open-profile="' + worker.id + '">Risk profile</button></td></tr>';
     }
     html += '</tbody></table>';
     elements.workerTable.innerHTML = html;
@@ -224,16 +278,20 @@ function loadSampleData() {
   const samplePostures = [
     { id: 'sample-p1', worker: sampleWorkers[0], task: 'Lifting cartons from floor pallet', method: 'reba',
       angles: { trunk: 72, neck: 25, upperArm: 70, lowerArm: 30, wrist: 10, knee: 35 },
-      factors: { loadKg: 14, loadPattern: 'intermittent', coupling: 2, trunkTwisted: true, repeatedOver4PerMin: true } },
-    { id: 'sample-p2', worker: sampleWorkers[0], task: 'Lifting cartons from raised pallet (after fix)', method: 'reba',
+      factors: { loadKg: 14, loadPattern: 'intermittent', coupling: 2, trunkTwisted: true, repeatedOver4PerMin: true },
+      exposure: { hoursPerShift: 5, frequency: 'frequently' }, minutesAgo: 60 },
+    { id: 'sample-p2', worker: sampleWorkers[0], task: 'Lifting cartons from floor pallet (after fix)', method: 'reba', baselineId: 'sample-p1',
       angles: { trunk: 15, neck: 10, upperArm: 30, lowerArm: 70, wrist: 5, knee: 10 },
-      factors: { loadKg: 14, loadPattern: 'intermittent', coupling: 1, repeatedOver4PerMin: true } },
+      factors: { loadKg: 14, loadPattern: 'intermittent', coupling: 1, repeatedOver4PerMin: true },
+      exposure: { hoursPerShift: 5, frequency: 'frequently' }, minutesAgo: 5 },
     { id: 'sample-p3', worker: sampleWorkers[1], task: 'Soldering circuit boards', method: 'rula',
       angles: { trunk: 25, neck: 38, upperArm: 35, lowerArm: 110, wrist: 20, knee: 85 },
-      factors: { seated: true, staticOver1Min: true, shoulderRaised: true, wristDeviated: true } },
+      factors: { seated: true, staticOver1Min: true, shoulderRaised: true, wristDeviated: true },
+      exposure: { hoursPerShift: 7, frequency: 'continuously' }, minutesAgo: 40 },
     { id: 'sample-p4', worker: sampleWorkers[2], task: 'Feeding sheets into press', method: 'reba',
       angles: { trunk: 10, neck: 15, upperArm: 95, lowerArm: 40, wrist: 15, knee: 5 },
-      factors: { loadKg: 4, repeatedOver4PerMin: true, armAbducted: true } },
+      factors: { loadKg: 4, repeatedOver4PerMin: true, armAbducted: true, staticOver1Min: true },
+      exposure: { hoursPerShift: 4, frequency: 'frequently' }, minutesAgo: 30 },
   ];
   for (const sample of samplePostures) {
     const factors = Object.assign({}, baseFactors, sample.factors);
@@ -241,7 +299,10 @@ function loadSampleData() {
     const reba = computeReba({ angles: sample.angles, factors: factors });
     storage.savePostureAssessment({
       id: sample.id,
-      date: new Date().toISOString(),
+      date: new Date(Date.now() - sample.minutesAgo * 60000).toISOString(),
+      exposure: sample.exposure,
+      baselineId: sample.baselineId || null,
+      durationSeconds: null,
       workerId: sample.worker.id,
       workerName: sample.worker.name,
       task: sample.task,
@@ -263,13 +324,20 @@ function loadSampleData() {
       { zone: 'Canteen', levelDb: 70, hours: 1, source: 'manual' }] },
     { id: 'sample-n2', worker: sampleWorkers[1], entries: [
       { zone: 'Assembly hall', levelDb: 74, hours: 7.5, source: 'manual' }] },
+    // After fix: press enclosure (96 → 88 dB(A)) and rotation (4 h → 2 h in the press area).
+    { id: 'sample-n3', worker: sampleWorkers[2], baselineId: 'sample-n1', minutesAgo: 2, entries: [
+      { zone: 'Power press', levelDb: 88, hours: 2, source: 'manual' },
+      { zone: 'Store room', levelDb: 78, hours: 5, source: 'manual' },
+      { zone: 'Canteen', levelDb: 70, hours: 1, source: 'manual' }] },
   ];
   for (const sample of sampleNoise) {
     const analysis = analyseExposure(sample.entries);
     const status = analysis.results.niosh.status;
     storage.saveNoiseAssessment({
       id: sample.id,
-      date: new Date().toISOString(),
+      baselineId: sample.baselineId || null,
+      durationSeconds: null,
+      date: new Date(Date.now() - (sample.minutesAgo || 20) * 60000).toISOString(),
       workerId: sample.worker.id,
       workerName: sample.worker.name,
       standard: 'niosh',

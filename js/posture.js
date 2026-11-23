@@ -37,6 +37,8 @@ const state = {
   facingMode: 'environment',
   liveRunning: false,
   lastLiveUpdate: 0,
+  startedAt: null,            // when this assessment started (for the time-taken metric)
+  baseline: null,             // the earlier assessment being re-assessed after a fix
 };
 
 let elements = {};
@@ -68,7 +70,18 @@ export function initPostureView() {
     breakdown: document.getElementById('score-breakdown'),
     recommendationList: document.getElementById('recommendation-list'),
     saveButton: document.getElementById('save-assessment-button'),
+    exposureHours: document.getElementById('exposure-hours'),
+    exposureFrequency: document.getElementById('exposure-frequency'),
+    reassessBanner: document.getElementById('reassess-banner'),
   };
+
+  elements.reassessBanner.addEventListener('click', function (event) {
+    if (event.target.closest('[data-cancel-reassess]')) {
+      state.baseline = null;
+      renderReassessBanner();
+      recompute();
+    }
+  });
 
   buildAngleSliders();
 
@@ -202,6 +215,7 @@ async function handleFileInput(event) {
     return;
   }
   stopLiveCamera();
+  markStarted();
   setStatus('Loading image…');
   let bitmap;
   try {
@@ -262,6 +276,7 @@ async function startLiveCamera() {
     return;
   }
   stopLiveCamera();
+  markStarted();
   setStatus('Starting camera…');
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
@@ -374,8 +389,15 @@ function resetAnglesToDefaults() {
   updateAllSliders();
 }
 
+function markStarted() {
+  if (!state.startedAt) {
+    state.startedAt = Date.now();
+  }
+}
+
 function startManualMode() {
   stopLiveCamera();
+  markStarted();
   state.sourceImage = null;
   elements.stage.hidden = true;
   resetAnglesToDefaults();
@@ -494,7 +516,94 @@ function renderScoreSummary() {
       '<p>' + escapeHtml(active.actionText) + '</p>' +
       '<p class="hint">' + other.method + ' gives ' + other.finalScore + ' / ' + other.maxScore + ' (' + otherLevel.label.toLowerCase() + ').' +
       (worker ? ' Worker: <strong>' + escapeHtml(worker.name) + '</strong>.' : ' No worker selected — fixes will not include exact heights.') + '</p>' +
+      comparisonHtml() +
     '</div>';
+}
+
+// Before / after comparison while re-assessing, always with the method the
+// original assessment used, so the two numbers are comparable.
+function comparisonHtml() {
+  if (!state.baseline) {
+    return '';
+  }
+  const method = state.baseline.method;
+  const before = (method === 'rula' ? state.baseline.rula : state.baseline.reba).finalScore;
+  const now = (method === 'rula' ? state.rula : state.reba).finalScore;
+  const change = before === 0 ? 0 : ((before - now) / before) * 100;
+  let verdict;
+  if (now < before) verdict = riskBadge('low', 'Improved ' + change.toFixed(0) + '%');
+  else if (now === before) verdict = riskBadge('medium', 'No change');
+  else verdict = riskBadge('high', 'Worse by ' + Math.abs(change).toFixed(0) + '%');
+  return '<div class="comparison"><span>Before fix: <strong>' + method.toUpperCase() + ' ' + before + '</strong></span>' +
+    '<span aria-hidden="true">→</span><span>Now: <strong>' + method.toUpperCase() + ' ' + now + '</strong></span>' + verdict + '</div>';
+}
+
+function renderReassessBanner() {
+  if (!state.baseline) {
+    elements.reassessBanner.hidden = true;
+    elements.reassessBanner.innerHTML = '';
+    return;
+  }
+  const result = state.baseline.method === 'rula' ? state.baseline.rula : state.baseline.reba;
+  elements.reassessBanner.hidden = false;
+  elements.reassessBanner.innerHTML =
+    '<p><strong>Re-assessing after a fix:</strong> ' + escapeHtml(state.baseline.task) + ' — ' + escapeHtml(state.baseline.workerName) +
+    ' (before: ' + state.baseline.method.toUpperCase() + ' ' + result.finalScore + ', ' + RISK_LEVELS[result.riskLevel].label.toLowerCase() + ' risk). ' +
+    'Capture the same task again with the fix in place.</p>' +
+    '<button type="button" class="link-button" data-cancel-reassess>Cancel re-assessment</button>';
+}
+
+// Called from the Home and Risk screens: "Re-assess after fix".
+export function prepareReassessment(assessmentId) {
+  let baseline = null;
+  for (const assessment of storage.getPostureAssessments()) {
+    if (assessment.id === assessmentId) baseline = assessment;
+  }
+  if (!baseline) {
+    return;
+  }
+  stopLiveCamera();
+  state.baseline = baseline;
+  state.startedAt = null;
+  state.hasPosture = false;
+  state.sourceImage = null;
+  state.pose = null;
+  state.methodChosenByUser = true;
+  state.method = baseline.method;
+  state.postureModeChosenByUser = true;
+  elements.stage.hidden = true;
+  elements.details.hidden = true;
+  setStatus('');
+
+  // Same worker, same task description, same task factors — only the posture changes.
+  if (baseline.workerId) {
+    storage.saveSettings({ activeWorkerId: baseline.workerId });
+  }
+  elements.taskInput.value = baseline.task.replace(/ \(after fix\)$/, '') + ' (after fix)';
+  const factors = baseline.factors || {};
+  for (const box of document.querySelectorAll('[data-factor]')) {
+    box.checked = Boolean(factors[box.dataset.factor]);
+  }
+  const postureRadio = document.querySelector('input[name="posture-mode"][value="' + (factors.seated ? 'seated' : 'standing') + '"]');
+  if (postureRadio) postureRadio.checked = true;
+  elements.loadKg.value = factors.loadKg || 0;
+  elements.loadPattern.value = factors.loadPattern || 'intermittent';
+  elements.coupling.value = String(factors.coupling || 0);
+  if (baseline.exposure) {
+    elements.exposureHours.value = baseline.exposure.hoursPerShift;
+    elements.exposureFrequency.value = baseline.exposure.frequency;
+  }
+  renderReassessBanner();
+  window.location.hash = '#posture';
+  window.scrollTo(0, 0);
+}
+
+function readExposure() {
+  const hours = parseFloat(elements.exposureHours.value);
+  return {
+    hoursPerShift: isFinite(hours) && hours > 0 ? hours : 2,
+    frequency: elements.exposureFrequency.value,
+  };
 }
 
 const BODY_PART_NAMES = {
@@ -616,10 +725,17 @@ function saveAssessment() {
     reba: summariseResult(state.reba),
     recommendations: state.recommendations,
     thumbnail: makeThumbnail(),
+    exposure: readExposure(),
+    baselineId: state.baseline ? state.baseline.id : null,
+    durationSeconds: state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : null,
   };
   const saved = storage.savePostureAssessment(assessment);
   if (saved) {
-    showToast('Assessment saved — see it on the Home screen.');
+    const seconds = assessment.durationSeconds;
+    showToast((state.baseline ? 'Re-assessment saved' : 'Assessment saved') + (seconds ? ' — took ' + Math.floor(seconds / 60) + ' min ' + (seconds % 60) + ' s.' : '.'));
+    state.baseline = null;
+    state.startedAt = null;
+    renderReassessBanner();
   } else {
     showToast('Could not save — device storage is full or blocked.');
   }

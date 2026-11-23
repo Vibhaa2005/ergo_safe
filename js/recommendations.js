@@ -40,8 +40,8 @@ export function generateRecommendations(input) {
   const display = findRecommendation(workstation, 'display');
   const surfaceText = surface ? ' For this worker the work surface should be ' + formatRangeMm(surface.low, surface.high) + ' high.' : ' Add the worker\'s height in the Workers tab to get an exact height.';
 
-  function add(priority, bodyPart, issue, action) {
-    list.push({ priority: priority, bodyPart: bodyPart, issue: issue, action: action });
+  function add(priority, bodyPart, issue, action, control) {
+    list.push({ priority: priority, bodyPart: bodyPart, issue: issue, action: action, control: control || 'engineering' });
   }
 
   // ---- trunk ----
@@ -107,23 +107,23 @@ export function generateRecommendations(input) {
   if (factors.loadKg > 10 || factors.loadPattern === 'shock') {
     add('high', 'Load', 'Heavy load (' + factors.loadKg + ' kg)' + (factors.loadPattern === 'shock' ? ' with sudden force' : '') + '.', 'Use a mechanical aid (trolley, hoist, vacuum lifter) or a two-person lift; split loads into smaller units.');
   } else if (factors.loadKg >= 5) {
-    add('medium', 'Load', 'Moderate load (' + factors.loadKg + ' kg).', 'Keep the load close to the body and between knuckle and shoulder height.');
+    add('medium', 'Load', 'Moderate load (' + factors.loadKg + ' kg).', 'Keep the load close to the body and between knuckle and shoulder height.', 'administrative');
   }
   if (factors.coupling >= 2) {
     add('medium', 'Grip', 'Poor grip on the load or tool.', 'Add handles or hand-holds; use containers with cut-outs; provide gloves with grip.');
   }
   if (factors.staticOver1Min) {
-    add('low', 'Whole body', 'Posture held for more than a minute.', 'Allow micro-breaks and posture changes every 20–30 minutes; consider a sit-stand arrangement.');
+    add('low', 'Whole body', 'Posture held for more than a minute.', 'Allow micro-breaks and posture changes every 20–30 minutes; consider a sit-stand arrangement.', 'administrative');
   }
   if (factors.repeatedOver4PerMin) {
-    add('medium', 'Whole body', 'Same action repeated more than 4 times a minute.', 'Rotate workers between tasks; automate or use jigs for the most repetitive step.');
+    add('medium', 'Whole body', 'Same action repeated more than 4 times a minute.', 'Rotate workers between tasks; automate or use jigs for the most repetitive step.', 'administrative');
   }
   if (factors.rapidOrUnstable) {
-    add('medium', 'Whole body', 'Rapid large posture changes or unstable base.', 'Slow the work pace and give the worker a stable base of support.');
+    add('medium', 'Whole body', 'Rapid large posture changes or unstable base.', 'Slow the work pace and give the worker a stable base of support.', 'administrative');
   }
 
   if (list.length === 0) {
-    add('low', 'Whole body', 'No major posture problems found.', 'Posture is acceptable. Re-assess if the task, tools or workstation change.');
+    add('low', 'Whole body', 'No major posture problems found.', 'Posture is acceptable. Re-assess if the task, tools or workstation change.', 'administrative');
   }
 
   list.sort(function (first, second) {
