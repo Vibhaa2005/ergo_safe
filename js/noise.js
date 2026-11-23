@@ -58,7 +58,6 @@ export function initNoiseView() {
     exposureResults: document.getElementById('exposure-results'),
     recommendations: document.getElementById('noise-recommendations'),
     saveButton: document.getElementById('noise-save-button'),
-    calibrationBadge: document.getElementById('calibration-badge'),
     calibrationReference: document.getElementById('calibration-reference'),
     calibrateButton: document.getElementById('calibrate-button'),
     roughCalibrateButton: document.getElementById('rough-calibrate-button'),
@@ -319,15 +318,6 @@ function resetCalibration() {
 
 function renderCalibration() {
   const settings = storage.getSettings();
-  let badge;
-  if (settings.microphoneCalibration === 'reference') {
-    badge = riskBadge('low', 'Calibrated to a reference meter');
-  } else if (settings.microphoneCalibration === 'rough') {
-    badge = riskBadge('medium', 'Roughly calibrated — about ±5 dB');
-  } else {
-    badge = riskBadge('high', 'Not calibrated — readings are approximate (±10 dB)');
-  }
-  elements.calibrationBadge.innerHTML = badge;
   elements.calibrationOffset.textContent = 'Current microphone offset: ' + settings.microphoneOffset.toFixed(1) + ' dB.';
 }
 
