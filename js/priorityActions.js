@@ -66,3 +66,40 @@ export function deletePostureWithFollowUps(assessmentId) {
   }
   storage.deletePostureAssessment(assessmentId);
 }
+
+// Noise exposure: every saved noise assessment, highest daily dose first.
+export function renderNoisePriority() {
+  const noiseAssessments = storage.getNoiseAssessments();
+  if (noiseAssessments.length === 0) {
+    return '<p class="empty">No noise assessments yet. Go to <a href="#noise">Noise</a> to measure.</p>';
+  }
+  const sortedNoise = noiseAssessments.slice().sort(function (first, second) { return second.nioshDosePercent - first.nioshDosePercent; });
+  let html = '<p class="hint">Every saved noise assessment, highest daily dose first.</p><div class="assessment-list">';
+  for (const assessment of sortedNoise) {
+    const zones = assessment.entries.map(function (entry) { return entry.zone + ' ' + entry.levelDb.toFixed(0) + ' dB(A) × ' + entry.hours + ' h'; }).join(', ');
+    const baseline = assessment.baselineId ? findById(noiseAssessments, assessment.baselineId) : null;
+    html += '<article class="assessment-card risk-border-' + assessment.riskLevel + '">' +
+      '<div class="thumb-placeholder" aria-hidden="true">dB</div>' +
+      '<div class="assessment-body">' +
+        '<div class="assessment-title"><strong>' + escapeHtml(assessment.workerName) + '</strong>' + riskBadge(assessment.riskLevel, assessment.statusLabel) + '</div>' +
+        '<p>NIOSH dose <strong>' + assessment.nioshDosePercent.toFixed(0) + '%</strong> · Factories Act dose <strong>' + assessment.indiaDosePercent.toFixed(0) + '%</strong>' +
+        (assessment.nioshTwa !== null ? ' · TWA ' + assessment.nioshTwa.toFixed(1) + ' dB(A)' : '') + '</p>' +
+        '<p class="hint">' + escapeHtml(zones) + ' · ' + formatDate(assessment.date) + '</p>' +
+        (baseline ? '<p class="follow-up-note">After fix: dose ' + baseline.nioshDosePercent.toFixed(0) + '% → ' + assessment.nioshDosePercent.toFixed(0) + '%</p>' : '') +
+        '<div class="card-actions"><button type="button" class="button small" data-reassess-noise="' + (assessment.baselineId || assessment.id) + '">Re-assess after fix</button>' +
+        '<button type="button" class="link-button" data-delete-noise="' + assessment.id + '">Delete</button></div>' +
+      '</div></article>';
+  }
+  return html + '</div>';
+}
+
+// Deleting a noise assessment also deletes its after-fix re-assessments.
+export function deleteNoiseWithFollowUps(assessmentId) {
+  if (!confirm('Delete this noise assessment and any after-fix re-assessments of it?')) {
+    return;
+  }
+  for (const assessment of storage.getNoiseAssessments()) {
+    if (assessment.baselineId === assessmentId) storage.deleteNoiseAssessment(assessment.id);
+  }
+  storage.deleteNoiseAssessment(assessmentId);
+}

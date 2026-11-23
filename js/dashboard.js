@@ -1,12 +1,12 @@
 // dashboard.js
-// The Home screen: summary tiles, noise results and data export.
+// The Home screen: summary tiles and data export.
 
 import * as storage from './storage.js';
 import { computeRula } from './rula.js';
 import { computeReba } from './reba.js';
 import { generateRecommendations } from './recommendations.js';
-import { analyseExposure, prepareNoiseReassessment } from './noise.js';
-import { riskBadge, escapeHtml, formatDate, downloadTextFile, toCsv, showToast } from './ui.js';
+import { analyseExposure } from './noise.js';
+import { downloadTextFile, toCsv, showToast } from './ui.js';
 
 const RISK_RANK = { negligible: 0, low: 1, medium: 2, high: 3, veryhigh: 4 };
 
@@ -15,7 +15,6 @@ let elements = {};
 export function initDashboardView() {
   elements = {
     summary: document.getElementById('home-summary'),
-    noiseList: document.getElementById('home-noise-list'),
   };
 
   document.getElementById('export-postures-csv').addEventListener('click', exportPosturesCsv);
@@ -31,28 +30,6 @@ export function initDashboardView() {
     }
   });
 
-  elements.noiseList.addEventListener('click', function (event) {
-    const reassessButton = event.target.closest('[data-reassess-noise]');
-    if (reassessButton) {
-      prepareNoiseReassessment(reassessButton.dataset.reassessNoise);
-      return;
-    }
-    const button = event.target.closest('[data-delete-noise]');
-    if (button && confirm('Delete this noise assessment and any after-fix re-assessments of it?')) {
-      const assessmentId = button.dataset.deleteNoise;
-      for (const assessment of storage.getNoiseAssessments()) {
-        if (assessment.baselineId === assessmentId) storage.deleteNoiseAssessment(assessment.id);
-      }
-      storage.deleteNoiseAssessment(assessmentId);
-    }
-  });
-}
-
-function findById(list, id) {
-  for (const item of list) {
-    if (item.id === id) return item;
-  }
-  return null;
 }
 
 function primaryResult(assessment) {
@@ -78,31 +55,6 @@ export function refreshDashboardView() {
     tile(postures.length, 'Posture assessments', null) +
     tile(highPostures, 'High-risk postures', highPostures > 0 ? 'high' : 'low') +
     tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low');
-
-  // ---- noise list ----
-  if (noiseAssessments.length === 0) {
-    elements.noiseList.innerHTML = '<p class="empty">No noise assessments yet. Go to <a href="#noise">Noise</a> to measure.</p>';
-  } else {
-    let html = '';
-    const sortedNoise = noiseAssessments.slice().sort(function (first, second) { return second.nioshDosePercent - first.nioshDosePercent; });
-    for (const assessment of sortedNoise) {
-      const zones = assessment.entries.map(function (entry) { return entry.zone + ' ' + entry.levelDb.toFixed(0) + ' dB(A) × ' + entry.hours + ' h'; }).join(', ');
-      html += '<article class="assessment-card risk-border-' + assessment.riskLevel + '">' +
-        '<div class="thumb-placeholder" aria-hidden="true">dB</div>' +
-        '<div class="assessment-body">' +
-          '<div class="assessment-title"><strong>' + escapeHtml(assessment.workerName) + '</strong>' + riskBadge(assessment.riskLevel, assessment.statusLabel) + '</div>' +
-          '<p>NIOSH dose <strong>' + assessment.nioshDosePercent.toFixed(0) + '%</strong> · Factories Act dose <strong>' + assessment.indiaDosePercent.toFixed(0) + '%</strong>' +
-          (assessment.nioshTwa !== null ? ' · TWA ' + assessment.nioshTwa.toFixed(1) + ' dB(A)' : '') + '</p>' +
-          '<p class="hint">' + escapeHtml(zones) + ' · ' + formatDate(assessment.date) + '</p>' +
-          (assessment.baselineId && findById(noiseAssessments, assessment.baselineId)
-            ? '<p class="follow-up-note">After fix: dose ' + findById(noiseAssessments, assessment.baselineId).nioshDosePercent.toFixed(0) + '% → ' + assessment.nioshDosePercent.toFixed(0) + '%</p>' : '') +
-          '<div class="card-actions"><button type="button" class="button small" data-reassess-noise="' + (assessment.baselineId || assessment.id) + '">Re-assess after fix</button>' +
-          '<button type="button" class="link-button" data-delete-noise="' + assessment.id + '">Delete</button></div>' +
-        '</div></article>';
-    }
-    elements.noiseList.innerHTML = html;
-  }
-
 }
 
 function tile(value, label, levelKey) {

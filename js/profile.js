@@ -13,7 +13,7 @@ import {
 } from './riskViews.js';
 import { prepareReassessment } from './posture.js';
 import { prepareNoiseReassessment } from './noise.js';
-import { renderPriorityActions, deletePostureWithFollowUps } from './priorityActions.js';
+import { renderPriorityActions, deletePostureWithFollowUps, renderNoisePriority, deleteNoiseWithFollowUps } from './priorityActions.js';
 import { escapeHtml } from './ui.js';
 
 let container = null;
@@ -43,6 +43,11 @@ export function initProfileView() {
     const deleteButton = event.target.closest('[data-delete-posture]');
     if (deleteButton) {
       deletePostureWithFollowUps(deleteButton.dataset.deletePosture);
+      return;
+    }
+    const deleteNoiseButton = event.target.closest('[data-delete-noise]');
+    if (deleteNoiseButton) {
+      deleteNoiseWithFollowUps(deleteNoiseButton.dataset.deleteNoise);
       return;
     }
     const postureButton = event.target.closest('[data-reassess-posture]');
@@ -76,7 +81,11 @@ export function refreshFactoryView() {
       '<button type="button" class="button" data-toggle-priority aria-expanded="' + (priorityOpen ? 'true' : 'false') + '" aria-controls="priority-panel">' +
         (priorityOpen ? 'Hide priority actions' : 'Priority actions') + '</button>' +
     '</div>' +
-    '<div class="card" id="priority-panel"' + (priorityOpen ? '' : ' hidden') + '><h2>Priority actions</h2>' + (priorityOpen ? renderPriorityActions() : '') + '</div>' +
+    '<div class="card" id="priority-panel"' + (priorityOpen ? '' : ' hidden') + '><h2>Priority actions</h2>' +
+      (priorityOpen
+        ? '<h3>Posture</h3>' + renderPriorityActions() + '<h3>Noise exposure</h3>' + renderNoisePriority()
+        : '') +
+    '</div>' +
     renderFactoryTotals(table) +
     '<div class="card">' +
       '<p class="hint">Ranked from highest to lowest overall risk. Overall posture score = each worker\'s worst posture. Tap a worker for their full profile and personal report.</p>' +
