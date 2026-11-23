@@ -352,7 +352,11 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 10px;
   padding: 10px 12px; min-height: var(--touch); cursor: pointer; list-style: none;
 }
-.worker-name { grid-column: 1; grid-row: 1; }
+/* Override the general "details summary" style (bold, teal) for worker rows:
+   only the name is bold; the details line is normal text. */
+.worker-fold > .worker-card { font-weight: 400; color: var(--colour-text); }
+.worker-name { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--colour-primary); }
+.worker-details { font-weight: 400; color: var(--colour-text-muted); }
 .worker-card .worker-actions { grid-column: 2; grid-row: 1; }
 .worker-details { grid-column: 1 / -1; grid-row: 2; }
 .worker-card::-webkit-details-marker { display: none; }
