@@ -15,8 +15,6 @@ import { formatRangeMm, INDIAN_POPULATION } from './anthropometry.js';
 const reportElement = document.getElementById('report');
 document.getElementById('print-button').addEventListener('click', function () { window.print(); });
 
-const STORAGE_LIMITATION = '<li><strong>Data storage:</strong> all data is kept in the local storage of the browser on one device (about 5 MB). With posture photos this holds roughly 15–20 workers; it is not shared between devices and is lost if the browser data is cleared, so export the data regularly.</li>';
-
 const parameters = new URLSearchParams(window.location.search);
 
 if (parameters.has('factory')) {
@@ -155,7 +153,6 @@ function buildReport(worker) {
       '<li><strong>Risk matrix:</strong> HIRA, severity × likelihood (1–25). Severity from the RULA/REBA level or the loudest noise level; likelihood from hours per shift and frequency. If posture and noise are both high, the overall risk is raised to very high (a conservative ErgoSafe rule).</li>' +
       '<li><strong>Overall posture score:</strong> the worst of the postures of the worker (up to 10), not an average — one dangerous posture is enough to cause injury.</li>' +
       '<li><strong>Limitations:</strong> a single 2-D photo cannot see twisting or side-bending (entered by the assessor); phone microphones are accurate to about ±2–5 dB only after calibration; estimated body dimensions should be measured directly when precision matters.</li>' +
-      STORAGE_LIMITATION +
     '</ul>');
 
   // ---- sign-off ----
@@ -196,7 +193,6 @@ function buildFactoryReport() {
       '<li><strong>Overall risk:</strong> the highest HIRA rating (severity × likelihood) among the hazards of the worker; raised to very high when posture and noise are both high (a conservative ErgoSafe rule). After-fix re-assessments count as the current status.</li>' +
       '<li><strong>Order:</strong> overall risk level, then HIRA rating, then posture score. Workers not yet assessed are listed last.</li>' +
       '<li><strong>Review due:</strong> the latest assessment of the worker is more than 6 months old.</li>' +
-      STORAGE_LIMITATION +
     '</ul>');
   html += '<section class="report-section signoff"><h2>Sign-off</h2><div class="signoff-grid">' +
     '<div><span>Prepared by</span><div class="sign-line"></div></div>' +
