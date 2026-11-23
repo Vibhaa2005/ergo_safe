@@ -55,6 +55,9 @@ html.high-contrast {
 
 * { box-sizing: border-box; }
 
+/* Anything marked hidden stays hidden, even if a class gives it display:flex. */
+[hidden] { display: none !important; }
+
 html, body { margin: 0; }
 
 body {
