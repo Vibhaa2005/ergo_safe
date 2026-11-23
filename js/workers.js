@@ -28,7 +28,6 @@ export function initWorkersView() {
     posture: document.getElementById('worker-posture'),
     task: document.getElementById('worker-task'),
     workstation: document.getElementById('worker-workstation'),
-    profile: document.getElementById('worker-profile'),
     populationRanges: document.getElementById('population-ranges'),
   };
 
@@ -59,7 +58,6 @@ export function initWorkersView() {
 
 export function refreshWorkersView() {
   renderWorkerList();
-  renderProfile();
 }
 
 function openForm(worker) {
@@ -112,10 +110,10 @@ function renderWorkerList() {
     elements.list.innerHTML = '<p class="empty">No workers yet. Add one to get workstation heights sized to their body.</p>';
     return;
   }
-  let html = '';
+  let html = '<p class="hint">Tap <strong>Select</strong> on a worker to open their anthropometric profile.</p>';
   for (const worker of workers) {
     const isActive = worker.id === activeId;
-    html += '<div class="worker-card' + (isActive ? ' active' : '') + '">' +
+    html += '<div class="worker-entry' + (isActive ? ' active' : '') + '"><div class="worker-card' + (isActive ? ' active' : '') + '">' +
       '<div class="worker-info"><strong>' + escapeHtml(worker.name) + '</strong>' +
       (isActive ? ' <span class="tag tag-auto">selected</span>' : '') +
       '<span class="hint">' + worker.statureCm + ' cm · ' + (worker.workPosture === 'seated' ? 'Seated' : 'Standing') + ' · ' +
@@ -124,17 +122,15 @@ function renderWorkerList() {
         (isActive ? '' : '<button type="button" class="button small" data-action="select" data-worker-id="' + worker.id + '">Select</button>') +
         '<button type="button" class="button small" data-action="edit" data-worker-id="' + worker.id + '">Edit</button>' +
         '<button type="button" class="button small danger" data-action="delete" data-worker-id="' + worker.id + '">Delete</button>' +
-      '</div></div>';
+      '</div></div>' +
+      // The selected worker's profile opens directly under their own card.
+      (isActive ? '<div class="worker-profile-panel"><h3>Anthropometric profile</h3>' + profileHtml(worker) + '</div>' : '') +
+      '</div>';
   }
   elements.list.innerHTML = html;
 }
 
-function renderProfile() {
-  const worker = storage.getActiveWorker();
-  if (!worker) {
-    elements.profile.innerHTML = '<p class="empty">Select or add a worker to see their body dimensions and recommended workstation.</p>';
-    return;
-  }
+function profileHtml(worker) {
   const statureMm = worker.statureCm * 10;
   const percentile = percentileOfStature(statureMm, worker.sex);
   const population = INDIAN_POPULATION[worker.sex];
@@ -161,7 +157,7 @@ function renderProfile() {
   }
   html += '</tbody></table></div><p class="hint">Estimated from stature with standard body-segment proportions. Measure directly when precision matters.</p></details>';
 
-  elements.profile.innerHTML = html;
+  return html;
 }
 
 // Side-view height chart: floor at the bottom, key heights marked.

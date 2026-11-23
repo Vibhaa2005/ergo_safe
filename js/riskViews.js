@@ -52,8 +52,7 @@ export function renderOverall(profile) {
     '<p>' + OVERALL_TEXT[level] + '</p>' +
     '<dl class="overall-parts">' +
       '<div><dt>Overall posture score</dt><dd>' + (posture
-        ? riskBadge(posture.level, posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore + ' · ' + levelLabel(posture.level)) +
-          '<span class="hint"> worst of ' + profile.postureCount + ' posture' + (profile.postureCount === 1 ? '' : 's') + ' (' + posture.hazardCode + ' ' + escapeHtml(posture.title) + ')</span>'
+        ? riskBadge(posture.level, posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore + ' · ' + levelLabel(posture.level))
         : '<span class="hint">No posture assessed</span>') + '</dd></div>' +
       '<div><dt>Noise exposure</dt><dd>' + (noise
         ? riskBadge(noise.level, 'Dose ' + noise.dosePercent.toFixed(0) + '%' + (noise.twa !== null ? ' · TWA ' + noise.twa.toFixed(1) + ' dB(A)' : '')) + '<span class="hint"> NIOSH</span>'
@@ -304,7 +303,7 @@ export function renderFactoryTable(table, interactive) {
         (row.reviewDue ? '<br>' + riskBadge('medium', 'Review due') : '') + '</td>' +
       '<td>' + row.postureCount + ' / 10</td>' +
       '<td>' + (posture
-        ? riskBadge(posture.level, posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore) + '<br><span class="hint">worst: ' + posture.hazardCode + ' ' + escapeHtml(posture.title) + '</span>'
+        ? riskBadge(posture.level, posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore)
         : '<span class="hint">Not assessed</span>') + '</td>' +
       '<td>' + (noise
         ? riskBadge(noise.level, noise.dosePercent.toFixed(0) + '%') + (noise.twa !== null ? '<br><span class="hint">TWA ' + noise.twa.toFixed(1) + ' dB(A)</span>' : '')

@@ -346,6 +346,24 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
   border: 1px solid var(--colour-border); border-radius: 12px; padding: 10px 12px;
 }
 .worker-card.active { border: 2px solid var(--colour-primary); background: var(--colour-primary-soft); }
+/* The selected worker's card and their profile read as one block. */
+.worker-entry.active { border: 2px solid var(--colour-primary); border-radius: 12px; overflow: hidden; }
+.worker-entry.active .worker-card { border: 0; border-radius: 0; }
+.worker-profile-panel { padding: 12px 14px 14px; border-top: 1px solid var(--colour-border); }
+.worker-info .tag { align-self: flex-start; margin: 2px 0; }
+.worker-profile-panel h3 { margin-top: 0; }
+
+/* Collapsible card (e.g. "Designing for everyone") */
+.collapsible > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: var(--touch); }
+.collapsible > summary::-webkit-details-marker { display: none; }
+.collapsible > summary h2 { margin: 0; }
+.collapsible > summary::after {
+  content: ""; width: 12px; height: 12px; flex: none; margin-right: 6px;
+  border-right: 3px solid var(--colour-primary); border-bottom: 3px solid var(--colour-primary);
+  transform: rotate(45deg); transition: transform 0.15s;
+}
+.collapsible[open] > summary::after { transform: rotate(-135deg); }
+.collapsible[open] > summary { margin-bottom: 8px; }
 .worker-info { display: flex; flex-direction: column; }
 .worker-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
