@@ -7,7 +7,7 @@
 // Pose model + MediaPipe files (other websites): cached after first use —
 // they are fixed for a version and large, so they are read from the cache.
 
-const CACHE_VERSION = 'ergosafe-v13';
+const CACHE_VERSION = 'ergosafe-v14';
 const RUNTIME_CACHE = 'ergosafe-runtime-v1';
 
 const APP_FILES = [

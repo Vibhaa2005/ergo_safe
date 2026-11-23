@@ -58,9 +58,20 @@ export function refreshDashboardView() {
     const profile = buildWorkerRiskProfile(worker, postures, noiseAssessments);
     if (profile.latestDate === null || profile.reviewDue) assessmentDue++;
   }
+  // How many workers have at least one posture / noise assessment.
+  let postureDone = 0;
+  let noiseDone = 0;
+  for (const worker of workers) {
+    if (postures.some(function (assessment) { return assessment.workerId === worker.id; })) postureDone++;
+    if (noiseAssessments.some(function (assessment) { return assessment.workerId === worker.id; })) noiseDone++;
+  }
+  function coverageLevel(done) {
+    if (workers.length === 0) return null;
+    return done === workers.length ? 'low' : 'medium';   // green when everyone is assessed
+  }
   elements.summary.innerHTML =
-    tile(workers.length, 'Workers', null) +
-    tile(postures.length, 'Posture assessments', null) +
+    tile(postureDone + ' / ' + workers.length, 'Workers with posture assessed', coverageLevel(postureDone)) +
+    tile(noiseDone + ' / ' + workers.length, 'Workers with noise assessed', coverageLevel(noiseDone)) +
     tile(highPostures, 'High-risk postures', highPostures > 0 ? 'high' : 'low') +
     tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low') +
     tile(assessmentDue, 'Workers due for risk assessment (new or > 6 months)', assessmentDue > 0 ? 'medium' : 'low');
