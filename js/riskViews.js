@@ -291,7 +291,7 @@ export function renderFactoryTable(table, interactive) {
   }
   let html = '<div class="table-wrap"><table class="data-table factory-table"><thead><tr>' +
     '<th>Rank</th><th>Worker</th><th>Postures</th><th>Overall posture score (RULA / REBA)</th><th>Noise exposure (NIOSH)</th><th>Overall risk</th>' +
-    (interactive ? '<th><span class="visually-hidden">Open</span></th>' : '') + '</tr></thead><tbody>';
+    (interactive ? '<th><span class="visually-hidden">Risk profile</span></th>' : '') + '</tr></thead><tbody>';
   let rank = 1;
   for (const row of table.rows) {
     const level = row.overallLevel;
@@ -309,7 +309,7 @@ export function renderFactoryTable(table, interactive) {
         ? riskBadge(noise.level, noise.dosePercent.toFixed(0) + '%') + (noise.twa !== null ? '<br><span class="hint">TWA ' + noise.twa.toFixed(1) + ' dB(A)</span>' : '')
         : '<span class="hint">Not assessed</span>') + '</td>' +
       '<td>' + cellBadge(level, levelLabel(level)) + (row.highestRating ? '<br><span class="hint">HIRA ' + row.highestRating + '/25</span>' : '') + '</td>' +
-      (interactive ? '<td><button type="button" class="button small" data-open-worker="' + row.worker.id + '">Open</button></td>' : '') +
+      (interactive ? '<td><button type="button" class="button small" data-open-worker="' + row.worker.id + '">Risk profile</button></td>' : '') +
       '</tr>';
     if (level !== 'none') rank++;
   }

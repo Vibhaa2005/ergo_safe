@@ -618,6 +618,7 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 .row-none td { background: var(--colour-surface); color: var(--colour-text-muted); }
 .rank-cell { font-size: 1.3rem; font-weight: 800; text-align: center; }
 .factory-table .badge { margin: 2px 0; }
+.factory-table .button { white-space: nowrap; }
 
 .posture-summary .summary-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
 .posture-summary .worst-row td { background: var(--risk-high-soft); }
