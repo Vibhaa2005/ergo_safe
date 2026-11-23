@@ -17,7 +17,10 @@
 import { computeRula } from './rula.js';
 import { computeReba } from './reba.js';
 import { recommendWorkstation, percentileOfStature, formatRangeMm } from './anthropometry.js';
-import { generateNoiseActions } from './noiseMath.js';
+import { generateNoiseActions, doseStatus, NOISE_STANDARDS } from './noiseMath.js';
+
+// Assessments older than this are flagged "Review due".
+export const REVIEW_INTERVAL_DAYS = 182;
 
 export const FREQUENCY_OPTIONS = {
   rarely: { label: 'Rarely (less than once an hour)', shortLabel: 'rarely', band: 1 },
@@ -259,7 +262,35 @@ function buildActions(hazards) {
 // Personalised User vs Work graph (the five diagonal cells)
 // ---------------------------------------------------------------
 
+const METHOD_MAX = { rula: 7, reba: 15 };
+
+// Posture score on a 0–1 scale so RULA (/7) and REBA (/15) can be compared
+// when two postures have the same risk level.
+function normalisedPostureScore(assessment) {
+  return primaryResult(assessment).finalScore / METHOD_MAX[assessment.method];
+}
+
+// The worker's overall posture = their WORST posture: highest RULA/REBA
+// risk level, then highest normalised score. One dangerous posture is
+// enough to cause injury, so the worst one is not averaged away.
+export function findWorstPosture(hazards) {
+  let worst = null;
+  for (const hazard of hazards) {
+    if (hazard.type !== 'posture') continue;
+    if (!worst) { worst = hazard; continue; }
+    const rank = LEVEL_RANK[primaryResult(hazard.current.assessment).riskLevel];
+    const worstRank = LEVEL_RANK[primaryResult(worst.current.assessment).riskLevel];
+    if (rank > worstRank || (rank === worstRank && normalisedPostureScore(hazard.current.assessment) > normalisedPostureScore(worst.current.assessment))) {
+      worst = hazard;
+    }
+  }
+  return worst;
+}
+
 function worstHazard(hazards, type) {
+  if (type === 'posture') {
+    return findWorstPosture(hazards);
+  }
   let worst = null;
   for (const hazard of hazards) {
     if (hazard.type !== type) continue;
@@ -429,8 +460,60 @@ export function buildWorkerRiskProfile(worker, allPostureAssessments, allNoiseAs
     how: how.length ? how : ['Assess the worker first.'],
   };
 
+  // ---- overall posture score (worst posture) ----
+  const worstPosture = findWorstPosture(hazards);
+  let overallPosture = null;
+  let postureCount = 0;
+  for (const hazard of hazards) {
+    if (hazard.type === 'posture') postureCount++;
+  }
+  if (worstPosture) {
+    const assessment = worstPosture.current.assessment;
+    const result = primaryResult(assessment);
+    overallPosture = {
+      hazardCode: worstPosture.code,
+      title: worstPosture.title,
+      method: assessment.method,
+      score: result.finalScore,
+      maxScore: METHOD_MAX[assessment.method],
+      level: result.riskLevel,
+      normalisedScore: normalisedPostureScore(assessment),
+    };
+  }
+
+  // ---- noise summary (worst noise hazard) ----
+  const worstNoise = worstHazard(hazards, 'noise');
+  let noiseSummary = null;
+  if (worstNoise) {
+    const assessment = worstNoise.current.assessment;
+    noiseSummary = {
+      hazardCode: worstNoise.code,
+      dosePercent: assessment.nioshDosePercent,
+      twa: assessment.nioshTwa,
+      level: doseStatus(assessment.nioshDosePercent, assessment.entries, NOISE_STANDARDS.niosh).riskLevel,
+    };
+  }
+
+  // ---- review due: latest assessment older than 6 months ----
+  let latestDate = null;
+  for (const assessment of postures.concat(noises)) {
+    if (!latestDate || assessment.date > latestDate) latestDate = assessment.date;
+  }
+  const reviewDue = latestDate !== null && (Date.now() - new Date(latestDate).getTime()) > REVIEW_INTERVAL_DAYS * 24 * 3600 * 1000;
+
+  let highestRating = 0;
+  for (const hazard of hazards) {
+    highestRating = Math.max(highestRating, hazard.current.rating);
+  }
+
   return {
     worker: worker,
+    overallPosture: overallPosture,
+    postureCount: postureCount,
+    noiseSummary: noiseSummary,
+    latestDate: latestDate,
+    reviewDue: reviewDue,
+    highestRating: highestRating,
     percentile: percentile,
     workstation: workstation,
     hazards: hazards,
@@ -440,4 +523,35 @@ export function buildWorkerRiskProfile(worker, allPostureAssessments, allNoiseAs
     fourWOneH: fourWOneH,
     graph: buildGraphCells(worker, hazards, workstation, percentile),
   };
+}
+
+// ---------------------------------------------------------------
+// Factory-wide table: every worker, ranked from highest to lowest risk
+// ---------------------------------------------------------------
+// Ranking: 1) overall risk level, 2) highest HIRA rating, 3) overall posture
+// score (normalised so RULA and REBA compare), 4) name. Workers with no
+// assessment go to the bottom.
+
+export function buildFactoryTable(workers, allPostureAssessments, allNoiseAssessments) {
+  const rows = [];
+  for (const worker of workers) {
+    rows.push(buildWorkerRiskProfile(worker, allPostureAssessments, allNoiseAssessments));
+  }
+  rows.sort(function (first, second) {
+    const levelDifference = LEVEL_RANK[second.overallLevel] - LEVEL_RANK[first.overallLevel];
+    if (levelDifference !== 0) return levelDifference;
+    const ratingDifference = second.highestRating - first.highestRating;
+    if (ratingDifference !== 0) return ratingDifference;
+    const firstPosture = first.overallPosture ? first.overallPosture.normalisedScore : -1;
+    const secondPosture = second.overallPosture ? second.overallPosture.normalisedScore : -1;
+    if (secondPosture !== firstPosture) return secondPosture - firstPosture;
+    return first.worker.name.localeCompare(second.worker.name);
+  });
+
+  const totals = { veryhigh: 0, high: 0, medium: 0, low: 0, negligible: 0, none: 0, reviewDue: 0 };
+  for (const row of rows) {
+    totals[row.overallLevel] += 1;
+    if (row.reviewDue) totals.reviewDue += 1;
+  }
+  return { rows: rows, totals: totals, generatedAt: new Date().toISOString() };
 }

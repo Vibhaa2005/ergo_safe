@@ -79,6 +79,7 @@ export function initPostureView() {
     if (event.target.closest('[data-cancel-reassess]')) {
       state.baseline = null;
       renderReassessBanner();
+      renderQuota();
       recompute();
     }
   });
@@ -118,8 +119,33 @@ export function initPostureView() {
 }
 
 export function refreshPostureView() {
+  renderQuota();
   if (state.hasPosture) {
     recompute();
+  }
+}
+
+// Shows "3 of 10 postures used" for the selected worker.
+function renderQuota() {
+  const quota = document.getElementById('posture-quota');
+  const worker = storage.getActiveWorker();
+  if (!worker) {
+    quota.innerHTML = 'No worker selected — choose one in the header so the posture is saved to their record.';
+    quota.className = 'posture-quota';
+    return;
+  }
+  const used = storage.countWorkerPostures(worker.id);
+  const limit = storage.MAX_POSTURES_PER_WORKER;
+  if (state.baseline) {
+    quota.innerHTML = 'After-fix re-assessment — does not count towards ' + escapeHtml(worker.name) + '\'s ' + limit + ' postures.';
+    quota.className = 'posture-quota';
+  } else if (used >= limit) {
+    quota.innerHTML = riskBadge('high', used + ' of ' + limit + ' postures used') +
+      ' ' + escapeHtml(worker.name) + ' has reached the limit. Delete a posture on the Home screen before adding a new one, or re-assess an existing one after a fix.';
+    quota.className = 'posture-quota full';
+  } else {
+    quota.innerHTML = '<strong>' + used + ' of ' + limit + '</strong> postures used for ' + escapeHtml(worker.name) + '.';
+    quota.className = 'posture-quota';
   }
 }
 
@@ -594,6 +620,7 @@ export function prepareReassessment(assessmentId) {
     elements.exposureFrequency.value = baseline.exposure.frequency;
   }
   renderReassessBanner();
+  renderQuota();
   window.location.hash = '#posture';
   window.scrollTo(0, 0);
 }
@@ -711,6 +738,11 @@ function saveAssessment() {
     return;
   }
   const worker = storage.getActiveWorker();
+  if (worker && !state.baseline && storage.countWorkerPostures(worker.id) >= storage.MAX_POSTURES_PER_WORKER) {
+    showToast(worker.name + ' already has ' + storage.MAX_POSTURES_PER_WORKER + ' postures. Delete one first, or use "Re-assess after fix".');
+    renderQuota();
+    return;
+  }
   const assessment = {
     id: storage.makeId(),
     date: new Date().toISOString(),
@@ -736,6 +768,7 @@ function saveAssessment() {
     state.baseline = null;
     state.startedAt = null;
     renderReassessBanner();
+    renderQuota();
   } else {
     showToast('Could not save — device storage is full or blocked.');
   }

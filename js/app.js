@@ -7,17 +7,18 @@ import { initDashboardView, refreshDashboardView } from './dashboard.js';
 import { initWorkersView, refreshWorkersView } from './workers.js';
 import { initPostureView, refreshPostureView, leavePostureView } from './posture.js';
 import { initNoiseView, refreshNoiseView, leaveNoiseView } from './noise.js';
-import { initFeedbackView, refreshFeedbackView } from './feedback.js';
-import { initProfileView, refreshProfileView } from './profile.js';
+import { initProfileView, refreshProfileView, refreshFactoryView } from './profile.js';
 import { escapeHtml } from './ui.js';
 
+// Each screen: which <section> it uses, which tab is highlighted, and the
+// functions to redraw it / clean up when leaving it.
 const VIEWS = {
-  home: { refresh: refreshDashboardView, leave: null },
-  workers: { refresh: refreshWorkersView, leave: null },
-  posture: { refresh: refreshPostureView, leave: leavePostureView },
-  noise: { refresh: refreshNoiseView, leave: leaveNoiseView },
-  risk: { refresh: refreshProfileView, leave: null },
-  feedback: { refresh: refreshFeedbackView, leave: null },
+  home: { section: 'home', tab: 'home', refresh: refreshDashboardView, leave: null },
+  workers: { section: 'workers', tab: 'workers', refresh: refreshWorkersView, leave: null },
+  posture: { section: 'posture', tab: 'posture', refresh: refreshPostureView, leave: leavePostureView },
+  noise: { section: 'noise', tab: 'noise', refresh: refreshNoiseView, leave: leaveNoiseView },
+  risk: { section: 'risk', tab: 'risk', refresh: refreshFactoryView, leave: null },              // all workers
+  'risk-worker': { section: 'risk', tab: 'risk', refresh: refreshProfileView, leave: null },     // one worker
 };
 
 let currentView = null;
@@ -31,11 +32,12 @@ function showView(name) {
   if (currentView && currentView !== name && VIEWS[currentView].leave) {
     VIEWS[currentView].leave();
   }
-  for (const viewName in VIEWS) {
-    document.getElementById('view-' + viewName).hidden = viewName !== name;
+  const view = VIEWS[name];
+  for (const section of document.querySelectorAll('main > .view')) {
+    section.hidden = section.id !== 'view-' + view.section;
   }
   for (const tab of document.querySelectorAll('.tab-bar a')) {
-    if (tab.dataset.tab === name) {
+    if (tab.dataset.tab === view.tab) {
       tab.setAttribute('aria-current', 'page');
     } else {
       tab.removeAttribute('aria-current');
@@ -43,7 +45,7 @@ function showView(name) {
   }
   const changedView = currentView !== name;
   currentView = name;
-  VIEWS[name].refresh();
+  view.refresh();
   if (changedView) {
     window.scrollTo(0, 0);
   }
@@ -71,7 +73,6 @@ function start() {
   initWorkersView();
   initPostureView();
   initNoiseView();
-  initFeedbackView();
   initProfileView();
 
   document.getElementById('active-worker-select').addEventListener('change', function (event) {

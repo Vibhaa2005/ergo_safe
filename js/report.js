@@ -3,8 +3,11 @@
 // The browser's "Print → Save as PDF" turns it into a PDF.
 
 import * as storage from './storage.js';
-import { buildWorkerRiskProfile, recomputeAssessment, FREQUENCY_OPTIONS } from './riskModel.js';
-import { renderOverall, renderRiskMatrix, renderHazardTable, render4W1H, renderGraph, renderActionPlan } from './riskViews.js';
+import { buildWorkerRiskProfile, buildFactoryTable, recomputeAssessment, FREQUENCY_OPTIONS } from './riskModel.js';
+import {
+  renderOverall, renderRiskMatrix, renderHazardTable, render4W1H, renderGraph, renderActionPlan,
+  renderPostureSummaryTable, renderFactoryTotals, renderFactoryTable,
+} from './riskViews.js';
 import { escapeHtml, formatDate, formatHours } from './ui.js';
 import { NOISE_STANDARDS, allowedHours } from './noiseMath.js';
 import { formatRangeMm, INDIAN_POPULATION } from './anthropometry.js';
@@ -12,13 +15,21 @@ import { formatRangeMm, INDIAN_POPULATION } from './anthropometry.js';
 const reportElement = document.getElementById('report');
 document.getElementById('print-button').addEventListener('click', function () { window.print(); });
 
-const parameters = new URLSearchParams(window.location.search);
-const worker = storage.getWorkerById(parameters.get('worker')) || storage.getActiveWorker();
+const STORAGE_LIMITATION = '<li><strong>Data storage:</strong> all data is kept in the local storage of the browser on one device (about 5 MB). With posture photos this holds roughly 15–20 workers; it is not shared between devices and is lost if the browser data is cleared, so export the data regularly.</li>';
 
-if (!worker) {
-  reportElement.innerHTML = '<p class="empty">No worker selected. Go back to the app, choose a worker on the Risk screen and press "Export report".</p>';
+const parameters = new URLSearchParams(window.location.search);
+
+if (parameters.has('factory')) {
+  document.querySelector('.report-toolbar a').href = 'index.html#risk';
+  buildFactoryReport();
 } else {
-  buildReport(worker);
+  const worker = storage.getWorkerById(parameters.get('worker')) || storage.getActiveWorker();
+  if (!worker) {
+    reportElement.innerHTML = '<p class="empty">No worker selected. Go back to the app, choose a worker on the Risk screen and press "Export report".</p>';
+  } else {
+    document.querySelector('.report-toolbar a').href = 'index.html#risk-worker';
+    buildReport(worker);
+  }
 }
 
 function section(number, title, body) {
@@ -106,7 +117,7 @@ function buildReport(worker) {
   html += section(5, 'Anthropometric fit', anthropometry);
 
   // ---- 6. posture ----
-  let postureHtml = '';
+  let postureHtml = '<h3>All postures</h3>' + renderPostureSummaryTable(profile) + '<h3>Each posture in detail</h3>';
   for (const hazard of profile.hazards) {
     if (hazard.type !== 'posture') continue;
     postureHtml += '<div class="report-hazard"><h3>' + hazard.code + ' · ' + escapeHtml(hazard.title) + '</h3><div class="report-pair">' +
@@ -116,7 +127,7 @@ function buildReport(worker) {
         (hazard.reduction.percent >= 0 ? '−' : '+') + Math.abs(hazard.reduction.percent).toFixed(0) + '%), HIRA rating ' + hazard.reduction.ratingText + '.</p>' : '') +
       '</div>';
   }
-  html += section(6, 'Posture assessment (RULA / REBA)', postureHtml || '<p class="empty">No posture assessment.</p>');
+  html += section(6, 'Posture assessment (RULA / REBA)', profile.postureCount ? postureHtml : '<p class="empty">No posture assessment.</p>');
 
   // ---- 7. noise ----
   let noiseHtml = '';
@@ -142,13 +153,54 @@ function buildReport(worker) {
       '<li><strong>Noise:</strong> A-weighted level from a phone microphone; daily dose and TWA under NIOSH (85 dB(A), 3 dB exchange) and the Factories Act, India (90 dB(A), 5 dB exchange).</li>' +
       '<li><strong>Anthropometry:</strong> body dimensions estimated from stature using standard segment proportions; work-surface rules after Grandjean.</li>' +
       '<li><strong>Risk matrix:</strong> HIRA, severity × likelihood (1–25). Severity from the RULA/REBA level or the loudest noise level; likelihood from hours per shift and frequency. If posture and noise are both high, the overall risk is raised to very high (a conservative ErgoSafe rule).</li>' +
+      '<li><strong>Overall posture score:</strong> the worst of the postures of the worker (up to 10), not an average — one dangerous posture is enough to cause injury.</li>' +
       '<li><strong>Limitations:</strong> a single 2-D photo cannot see twisting or side-bending (entered by the assessor); phone microphones are accurate to about ±2–5 dB only after calibration; estimated body dimensions should be measured directly when precision matters.</li>' +
+      STORAGE_LIMITATION +
     '</ul>');
 
   // ---- sign-off ----
   html += '<section class="report-section signoff"><h2>Sign-off</h2><div class="signoff-grid">' +
     '<div><span>Assessed by</span><div class="sign-line"></div></div>' +
     '<div><span>Reviewed by (supervisor)</span><div class="sign-line"></div></div>' +
+    '<div><span>Next review date</span><div class="sign-line"></div></div>' +
+    '</div></section>';
+
+  reportElement.innerHTML = html;
+}
+
+// ---------------------------------------------------------------
+// Factory report: every worker, ranked from highest to lowest risk
+// ---------------------------------------------------------------
+
+function buildFactoryReport() {
+  const table = buildFactoryTable(storage.getWorkers(), storage.getPostureAssessments(), storage.getNoiseAssessments());
+  const today = new Date();
+  document.title = 'ErgoSafe factory risk report — ' + today.toISOString().slice(0, 10);
+
+  let html = '<header class="report-cover">' +
+    '<div class="report-brand"><img src="icons/icon-192.png" alt="" width="44" height="44"><div><div class="report-kicker">ErgoSafe</div>' +
+    '<h1>Factory risk assessment — all workers</h1></div></div>' +
+    '<dl class="report-meta">' +
+      '<div><dt>Site / factory</dt><dd contenteditable="true" class="fill-in">&nbsp;</dd></div>' +
+      '<div><dt>Report date</dt><dd>' + formatDate(today.toISOString()) + '</dd></div>' +
+      '<div><dt>Workers</dt><dd>' + table.rows.length + '</dd></div>' +
+      '<div><dt>Prepared by</dt><dd contenteditable="true" class="fill-in">&nbsp;</dd></div>' +
+    '</dl></header>';
+
+  html += section(1, 'Summary', renderFactoryTotals(table));
+  html += section(2, 'Workers ranked by risk', '<p class="hint">Highest risk first. Act on the top rows first. Full details for each worker are in their personal report.</p>' + renderFactoryTable(table, false));
+  html += section(3, 'How the ranking works',
+    '<ul class="method-list">' +
+      '<li><strong>Overall posture score:</strong> the worst posture of each worker (RULA or REBA, up to 10 postures per worker). RULA (out of 7) and REBA (out of 15) are compared by risk level, not by raw number.</li>' +
+      '<li><strong>Noise exposure:</strong> daily noise dose and 8-hour TWA under NIOSH (85 dB(A), 3 dB exchange); 100 % is the daily limit.</li>' +
+      '<li><strong>Overall risk:</strong> the highest HIRA rating (severity × likelihood) among the hazards of the worker; raised to very high when posture and noise are both high (a conservative ErgoSafe rule). After-fix re-assessments count as the current status.</li>' +
+      '<li><strong>Order:</strong> overall risk level, then HIRA rating, then posture score. Workers not yet assessed are listed last.</li>' +
+      '<li><strong>Review due:</strong> the latest assessment of the worker is more than 6 months old.</li>' +
+      STORAGE_LIMITATION +
+    '</ul>');
+  html += '<section class="report-section signoff"><h2>Sign-off</h2><div class="signoff-grid">' +
+    '<div><span>Prepared by</span><div class="sign-line"></div></div>' +
+    '<div><span>Approved by (factory manager)</span><div class="sign-line"></div></div>' +
     '<div><span>Next review date</span><div class="sign-line"></div></div>' +
     '</div></section>';
 

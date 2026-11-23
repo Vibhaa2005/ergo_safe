@@ -9,10 +9,10 @@ supervisor what to change for each worker:
 | Module | What it does | Level of the User vs Work graph |
 |---|---|---|
 | Workers | Stature → Indian population percentile, body dimensions, recommended work-surface / seat / screen heights and reach zones | Anthropometry |
-| Posture | Photo or live camera → in-browser pose detection → joint angles (editable) → **RULA** and **REBA** scores, body map, worked score breakdown, specific fixes | Biomechanics |
+| Posture | Up to 10 postures per worker. Photo or live camera → in-browser pose detection → joint angles (editable) → **RULA** and **REBA** scores, body map, worked score breakdown, specific fixes | Biomechanics |
 | Noise | Phone microphone → A-weighted sound level, calibration, daily dose and TWA (NIOSH and Indian Factories Act), hearing-protector NRR, control measures | Information handling / Functional |
-| Home | Risk dashboard ranking every assessment, CSV/JSON export | Information handling / Functional |
-| Feedback | System Usability Scale + look-and-feel ratings | Aesthetic |
+| Home | Dashboard of every assessment, re-assess after fix, CSV/JSON export | Information handling / Functional |
+| Risk | Factory table: all workers ranked by risk (worst posture, noise dose, overall HIRA risk) + PDF export. Per worker: HIRA risk matrix, before/after, personalised 4W1H and User vs Work graph, action plan by hierarchy of controls, personal PDF report | All five levels |
 
 ## Run locally
 
@@ -34,4 +34,3 @@ all data is stored in the browser's local storage on the device.
 - Factories Act 1948 (India), model rules on noise exposure
 - Chakrabarti (1997), *Indian Anthropometric Dimensions for Ergonomic Design Practice*, NID
 - Grandjean, *Fitting the Task to the Man* (work-surface heights)
-- Brooke (1996), SUS — A quick and dirty usability scale

@@ -78,7 +78,6 @@
         <div class="button-row">
           <button type="button" class="button" id="export-postures-csv">Postures (CSV)</button>
           <button type="button" class="button" id="export-noise-csv">Noise (CSV)</button>
-          <button type="button" class="button" id="export-feedback-csv">Feedback (CSV)</button>
           <button type="button" class="button" id="export-json">Everything (JSON)</button>
         </div>
         <div class="button-row">
@@ -173,6 +172,7 @@
           <span>Task being assessed</span>
           <input type="text" id="posture-task" autocomplete="off" placeholder="e.g. Lifting cartons from floor pallet">
         </label>
+        <p id="posture-quota" class="posture-quota" aria-live="polite"></p>
         <div class="button-row">
           <label class="button primary file-button">
             <input type="file" accept="image/*" capture="environment" id="photo-capture-input">
@@ -410,44 +410,8 @@
 
     <!-- ============================ RISK PROFILE ============================ -->
     <section id="view-risk" class="view" aria-labelledby="risk-title" hidden>
-      <h1 id="risk-title" class="view-title">Worker risk profile</h1>
+      <h1 id="risk-title" class="visually-hidden">Risk</h1>
       <div id="risk-profile"></div>
-    </section>
-
-    <!-- ============================ FEEDBACK ============================ -->
-    <section id="view-feedback" class="view" aria-labelledby="feedback-title" hidden>
-      <h1 id="feedback-title" class="view-title">Your feedback</h1>
-      <form id="feedback-form" class="card">
-        <p class="hint">After trying the app, please answer honestly. There are no right answers. (System Usability Scale + comfort ratings.)</p>
-        <div class="form-grid">
-          <label class="field">
-            <span>Participant code</span>
-            <input type="text" id="participant-code" required autocomplete="off" placeholder="e.g. P01">
-          </label>
-          <label class="field">
-            <span>Role</span>
-            <select id="participant-role">
-              <option value="student">Student / evaluator</option>
-              <option value="worker">Worker</option>
-              <option value="supervisor">Supervisor / safety officer</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-        </div>
-        <h3>Usability (1 = strongly disagree, 5 = strongly agree)</h3>
-        <div id="sus-items"></div>
-        <h3>Look and feel</h3>
-        <div id="aesthetic-items"></div>
-        <label class="field">
-          <span>Anything you would change?</span>
-          <textarea id="feedback-comments" rows="3"></textarea>
-        </label>
-        <button type="submit" class="button primary wide">Submit feedback</button>
-      </form>
-      <div class="card">
-        <h2>Responses so far</h2>
-        <div id="feedback-summary"></div>
-      </div>
     </section>
 
   </main>
@@ -472,10 +436,6 @@
     <a href="#risk" data-tab="risk">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.5"/></svg>
       <span>Risk</span>
-    </a>
-    <a href="#feedback" data-tab="feedback">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
-      <span>Feedback</span>
     </a>
   </nav>
 

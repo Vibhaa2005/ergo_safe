@@ -44,9 +44,21 @@ export function renderOverall(profile) {
     return '<p class="empty">No posture or noise assessments for this worker yet. Assess them on the Posture and Noise screens.</p>';
   }
   const level = profile.overallLevel;
+  const posture = profile.overallPosture;
+  const noise = profile.noiseSummary;
   return '<div class="overall-banner risk-border-' + level + '">' +
-    '<div class="overall-head"><span class="overall-label">Overall risk</span>' + riskBadge(level, levelLabel(level) + ' risk') + '</div>' +
+    '<div class="overall-head"><span class="overall-label">Overall risk</span>' + riskBadge(level, levelLabel(level) + ' risk') +
+    (profile.reviewDue ? riskBadge('medium', 'Review due') : '') + '</div>' +
     '<p>' + OVERALL_TEXT[level] + '</p>' +
+    '<dl class="overall-parts">' +
+      '<div><dt>Overall posture score</dt><dd>' + (posture
+        ? riskBadge(posture.level, posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore + ' · ' + levelLabel(posture.level)) +
+          '<span class="hint"> worst of ' + profile.postureCount + ' posture' + (profile.postureCount === 1 ? '' : 's') + ' (' + posture.hazardCode + ' ' + escapeHtml(posture.title) + ')</span>'
+        : '<span class="hint">No posture assessed</span>') + '</dd></div>' +
+      '<div><dt>Noise exposure</dt><dd>' + (noise
+        ? riskBadge(noise.level, 'Dose ' + noise.dosePercent.toFixed(0) + '%' + (noise.twa !== null ? ' · TWA ' + noise.twa.toFixed(1) + ' dB(A)' : '')) + '<span class="hint"> NIOSH</span>'
+        : '<span class="hint">No noise assessed</span>') + '</dd></div>' +
+    '</dl>' +
     (profile.combinedRuleApplied ? '<p class="hint"><strong>Combined-exposure rule applied:</strong> posture and noise are both rated high, so the overall risk is raised to very high (a conservative ErgoSafe rule).</p>' : '') +
     '</div>';
 }
@@ -125,7 +137,9 @@ export function renderHazardCards(profile) {
       afterText = '<p class="follow-up-note">After fix: ' + escapeHtml(hazard.reduction.text) + ' (' + (percent >= 0 ? '−' : '+') +
         Math.abs(percent).toFixed(0) + '%) · rating ' + hazard.reduction.ratingText + '</p>';
     }
+    const isWorst = profile.overallPosture && profile.overallPosture.hazardCode === hazard.code;
     html += '<article class="hazard-card risk-border-' + current.level + '">' +
+      (isWorst ? '<p class="worst-tag">Worst posture — sets the overall posture score</p>' : '') +
       '<div class="assessment-title"><strong><span class="chip">' + hazard.code + '</span> ' + escapeHtml(hazard.title) + '</strong>' +
       riskBadge(current.level, current.rating + ' · ' + levelLabel(current.level)) + '</div>' +
       '<p>' + escapeHtml(current.scoreText) + ' · severity ' + current.severity + ' × likelihood ' + current.likelihood.value +
@@ -218,5 +232,88 @@ export function renderActionPlan(profile, statusMap, editable) {
     }
     html += '</ul>';
   }
+  return html;
+}
+
+// ---------------------------------------------------------------
+// Report: summary of all of a worker's postures (P1–P10)
+// ---------------------------------------------------------------
+
+export function renderPostureSummaryTable(profile) {
+  const postureHazards = profile.hazards.filter(function (hazard) { return hazard.type === 'posture'; });
+  if (postureHazards.length === 0) {
+    return '<p class="empty">No posture assessment.</p>';
+  }
+  let html = '<table class="data-table compact posture-summary"><thead><tr><th>Code</th><th>Photo</th><th>Task</th><th>Score now</th><th>Risk level</th><th>After fix</th></tr></thead><tbody>';
+  for (const hazard of postureHazards) {
+    const assessment = hazard.current.assessment;
+    const result = assessment.method === 'rula' ? assessment.rula : assessment.reba;
+    const isWorst = profile.overallPosture && profile.overallPosture.hazardCode === hazard.code;
+    html += '<tr' + (isWorst ? ' class="worst-row"' : '') + '><td><strong>' + hazard.code + '</strong>' + (isWorst ? '<br><span class="worst-label">Overall (worst)</span>' : '') + '</td>' +
+      '<td>' + (assessment.thumbnail ? '<img class="summary-thumb" src="' + assessment.thumbnail + '" alt="">' : '<span class="hint">no photo</span>') + '</td>' +
+      '<td>' + escapeHtml(hazard.title) + '</td>' +
+      '<td class="nowrap">' + assessment.method.toUpperCase() + ' ' + result.finalScore + '/' + (assessment.method === 'rula' ? 7 : 15) + '</td>' +
+      '<td>' + riskBadge(result.riskLevel) + '</td>' +
+      '<td>' + (hazard.reduction ? escapeHtml(hazard.reduction.text) + ' (' + (hazard.reduction.percent >= 0 ? '−' : '+') + Math.abs(hazard.reduction.percent).toFixed(0) + '%)' : '—') + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  if (profile.overallPosture) {
+    const posture = profile.overallPosture;
+    html += '<p class="overall-posture-line"><strong>Overall posture score: ' + posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore +
+      ' (' + levelLabel(posture.level).toLowerCase() + ')</strong> — the worst of ' + profile.postureCount + ' posture' + (profile.postureCount === 1 ? '' : 's') +
+      ' (' + posture.hazardCode + '). The worst posture is used, not an average, because one dangerous posture is enough to cause injury.</p>';
+  }
+  return html;
+}
+
+// ---------------------------------------------------------------
+// Factory-wide table (supervisor view and factory report)
+// ---------------------------------------------------------------
+
+export function renderFactoryTotals(table) {
+  const totals = table.totals;
+  const assessed = table.rows.length - totals.none;
+  function totalTile(count, label, level) {
+    return '<div class="tile' + (level ? ' tile-level tile-' + level : '') + '"><span class="tile-value">' + count + '</span><span class="tile-label">' + label + '</span></div>';
+  }
+  return '<div class="tile-row factory-totals">' +
+    totalTile(assessed + ' / ' + table.rows.length, 'Workers assessed', null) +
+    totalTile(totals.veryhigh, 'Very high risk', 'veryhigh') +
+    totalTile(totals.high, 'High risk', 'high') +
+    totalTile(totals.medium, 'Medium risk', 'medium') +
+    totalTile(totals.low + totals.negligible, 'Low risk', 'low') +
+    totalTile(totals.reviewDue, 'Review due (> 6 months)', totals.reviewDue > 0 ? 'medium' : null) +
+    '</div>';
+}
+
+export function renderFactoryTable(table, interactive) {
+  if (table.rows.length === 0) {
+    return '<p class="empty">No workers yet. Add workers on the Workers screen, or load sample data on Home.</p>';
+  }
+  let html = '<div class="table-wrap"><table class="data-table factory-table"><thead><tr>' +
+    '<th>Rank</th><th>Worker</th><th>Postures</th><th>Overall posture score (RULA / REBA)</th><th>Noise exposure (NIOSH)</th><th>Overall risk</th>' +
+    (interactive ? '<th><span class="visually-hidden">Open</span></th>' : '') + '</tr></thead><tbody>';
+  let rank = 1;
+  for (const row of table.rows) {
+    const level = row.overallLevel;
+    const posture = row.overallPosture;
+    const noise = row.noiseSummary;
+    html += '<tr class="factory-row row-' + level + '"' + (interactive ? ' data-open-worker="' + row.worker.id + '"' : '') + '>' +
+      '<td class="rank-cell">' + (level === 'none' ? '—' : rank) + '</td>' +
+      '<td><strong>' + escapeHtml(row.worker.name) + '</strong><br><span class="hint">' + escapeHtml(row.worker.workstation || '') + '</span>' +
+        (row.reviewDue ? '<br>' + riskBadge('medium', 'Review due') : '') + '</td>' +
+      '<td>' + row.postureCount + ' / 10</td>' +
+      '<td>' + (posture
+        ? riskBadge(posture.level, posture.method.toUpperCase() + ' ' + posture.score + '/' + posture.maxScore) + '<br><span class="hint">worst: ' + posture.hazardCode + ' ' + escapeHtml(posture.title) + '</span>'
+        : '<span class="hint">Not assessed</span>') + '</td>' +
+      '<td>' + (noise
+        ? riskBadge(noise.level, noise.dosePercent.toFixed(0) + '%') + (noise.twa !== null ? '<br><span class="hint">TWA ' + noise.twa.toFixed(1) + ' dB(A)</span>' : '')
+        : '<span class="hint">Not assessed</span>') + '</td>' +
+      '<td>' + cellBadge(level, levelLabel(level)) + (row.highestRating ? '<br><span class="hint">HIRA ' + row.highestRating + '/25</span>' : '') + '</td>' +
+      (interactive ? '<td><button type="button" class="button small" data-open-worker="' + row.worker.id + '">Open</button></td>' : '') +
+      '</tr>';
+    if (level !== 'none') rank++;
+  }
+  html += '</tbody></table></div>';
   return html;
 }

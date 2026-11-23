@@ -37,6 +37,7 @@ body.report-page { background: #e9eeee; padding-bottom: 32px; }
 .report .table-wrap { overflow: visible; }
 .report .hf-graph { min-width: 0; grid-template-columns: 22px 96px repeat(5, minmax(0, 1fr)); font-size: 0.72rem; }
 .report .risk-matrix { min-width: 0; }
+.report .factory-table { min-width: 0; }
 
 @media (max-width: 640px) {
   .report { padding: 18px 14px; margin: 0; border-radius: 0; }

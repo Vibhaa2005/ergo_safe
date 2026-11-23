@@ -9,7 +9,6 @@ import { generateRecommendations } from './recommendations.js';
 import { analyseExposure, prepareNoiseReassessment } from './noise.js';
 import { prepareReassessment } from './posture.js';
 import { buildWorkerRiskProfile } from './riskModel.js';
-import { susScore } from './feedback.js';
 import { riskBadge, escapeHtml, formatDate, downloadTextFile, toCsv, showToast, RISK_LEVELS } from './ui.js';
 
 const RISK_RANK = { negligible: 0, low: 1, medium: 2, high: 3, veryhigh: 4 };
@@ -26,13 +25,12 @@ export function initDashboardView() {
 
   document.getElementById('export-postures-csv').addEventListener('click', exportPosturesCsv);
   document.getElementById('export-noise-csv').addEventListener('click', exportNoiseCsv);
-  document.getElementById('export-feedback-csv').addEventListener('click', exportFeedbackCsv);
   document.getElementById('export-json').addEventListener('click', function () {
     downloadTextFile('ergosafe-data.json', JSON.stringify(storage.exportAllData(), null, 2), 'application/json');
   });
   document.getElementById('load-sample-data').addEventListener('click', loadSampleData);
   document.getElementById('clear-all-data').addEventListener('click', function () {
-    if (confirm('Delete ALL workers, assessments and feedback on this device? This cannot be undone.')) {
+    if (confirm('Delete ALL workers and assessments on this device? This cannot be undone.')) {
       storage.clearAllData();
       showToast('All data deleted.');
     }
@@ -45,8 +43,12 @@ export function initDashboardView() {
       return;
     }
     const button = event.target.closest('[data-delete-posture]');
-    if (button && confirm('Delete this assessment?')) {
-      storage.deletePostureAssessment(button.dataset.deletePosture);
+    if (button && confirm('Delete this posture assessment and any after-fix re-assessments of it?')) {
+      const assessmentId = button.dataset.deletePosture;
+      for (const assessment of storage.getPostureAssessments()) {
+        if (assessment.baselineId === assessmentId) storage.deletePostureAssessment(assessment.id);
+      }
+      storage.deletePostureAssessment(assessmentId);
     }
   });
   elements.noiseList.addEventListener('click', function (event) {
@@ -56,15 +58,19 @@ export function initDashboardView() {
       return;
     }
     const button = event.target.closest('[data-delete-noise]');
-    if (button && confirm('Delete this noise assessment?')) {
-      storage.deleteNoiseAssessment(button.dataset.deleteNoise);
+    if (button && confirm('Delete this noise assessment and any after-fix re-assessments of it?')) {
+      const assessmentId = button.dataset.deleteNoise;
+      for (const assessment of storage.getNoiseAssessments()) {
+        if (assessment.baselineId === assessmentId) storage.deleteNoiseAssessment(assessment.id);
+      }
+      storage.deleteNoiseAssessment(assessmentId);
     }
   });
   elements.workerTable.addEventListener('click', function (event) {
     const button = event.target.closest('[data-open-profile]');
     if (button) {
       storage.saveSettings({ activeWorkerId: button.dataset.openProfile });
-      window.location.hash = '#risk';
+      window.location.hash = '#risk-worker';
     }
   });
 }
@@ -240,21 +246,6 @@ function exportNoiseCsv() {
   downloadTextFile('ergosafe-noise.csv', toCsv(rows), 'text/csv');
 }
 
-function exportFeedbackCsv() {
-  const header = ['id', 'date', 'participant', 'role'];
-  for (let item = 1; item <= 10; item++) header.push('sus' + item);
-  header.push('susScore', 'visualAppeal', 'clarity', 'trust', 'comfort', 'comments');
-  const rows = [header];
-  for (const response of storage.getFeedbackResponses()) {
-    const row = [response.id, response.date, response.participantCode, response.role];
-    for (const answer of response.susAnswers) row.push(answer);
-    row.push(susScore(response.susAnswers));
-    row.push(response.aesthetic.visualAppeal, response.aesthetic.clarity, response.aesthetic.trust, response.aesthetic.comfort, response.comments);
-    rows.push(row);
-  }
-  downloadTextFile('ergosafe-feedback.csv', toCsv(rows), 'text/csv');
-}
-
 // ---------------------------------------------------------------
 // Sample data for demonstrations
 // ---------------------------------------------------------------
@@ -264,6 +255,8 @@ function loadSampleData() {
     { id: 'sample-w1', name: 'Ravi (sample)', sex: 'male', statureCm: 168, massKg: 64, workPosture: 'standing', taskType: 'heavy', workstation: 'Warehouse — loading bay' },
     { id: 'sample-w2', name: 'Meena (sample)', sex: 'female', statureCm: 152, massKg: 52, workPosture: 'seated', taskType: 'precision', workstation: 'Electronics assembly' },
     { id: 'sample-w3', name: 'Arjun (sample)', sex: 'male', statureCm: 175, massKg: 72, workPosture: 'standing', taskType: 'light', workstation: 'Press shop' },
+    { id: 'sample-w4', name: 'Lakshmi (sample)', sex: 'female', statureCm: 155, massKg: 55, workPosture: 'standing', taskType: 'light', workstation: 'Packing line 2' },
+    { id: 'sample-w5', name: 'Imran (sample)', sex: 'male', statureCm: 170, massKg: 68, workPosture: 'standing', taskType: 'light', workstation: 'Quality inspection' },
   ];
   for (const worker of sampleWorkers) {
     storage.saveWorker(worker);
@@ -292,6 +285,14 @@ function loadSampleData() {
       angles: { trunk: 10, neck: 15, upperArm: 95, lowerArm: 40, wrist: 15, knee: 5 },
       factors: { loadKg: 4, repeatedOver4PerMin: true, armAbducted: true, staticOver1Min: true },
       exposure: { hoursPerShift: 4, frequency: 'frequently' }, minutesAgo: 30 },
+    { id: 'sample-p5', worker: sampleWorkers[0], task: 'Taping cartons at packing table', method: 'reba',
+      angles: { trunk: 25, neck: 30, upperArm: 40, lowerArm: 75, wrist: 20, knee: 5 },
+      factors: { repeatedOver4PerMin: true, staticOver1Min: true },
+      exposure: { hoursPerShift: 2, frequency: 'frequently' }, minutesAgo: 50 },
+    { id: 'sample-p6', worker: sampleWorkers[3], task: 'Reaching to top shelf for rolls', method: 'reba',
+      angles: { trunk: -5, neck: -15, upperArm: 120, lowerArm: 30, wrist: 10, knee: 5 },
+      factors: { loadKg: 6, shoulderRaised: true },
+      exposure: { hoursPerShift: 1.5, frequency: 'occasionally' }, minutesAgo: 200 * 24 * 60 },
   ];
   for (const sample of samplePostures) {
     const factors = Object.assign({}, baseFactors, sample.factors);

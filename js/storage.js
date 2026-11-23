@@ -7,7 +7,6 @@ const STORAGE_KEYS = {
   workers: 'ergosafe.workers',
   postureAssessments: 'ergosafe.postureAssessments',
   noiseAssessments: 'ergosafe.noiseAssessments',
-  feedbackResponses: 'ergosafe.feedbackResponses',
   actionStatuses: 'ergosafe.actionStatuses',
   settings: 'ergosafe.settings',
 };
@@ -131,6 +130,22 @@ export function deletePostureAssessment(assessmentId) {
   return deleteItemFromList(STORAGE_KEYS.postureAssessments, assessmentId);
 }
 
+// Each worker may have at most this many postures. After-fix
+// re-assessments are attached to their posture and do not count.
+export const MAX_POSTURES_PER_WORKER = 10;
+
+export function countWorkerPostures(workerId) {
+  const all = getPostureAssessments();
+  const ids = {};
+  for (const assessment of all) ids[assessment.id] = true;
+  let count = 0;
+  for (const assessment of all) {
+    const isFollowUp = assessment.baselineId && ids[assessment.baselineId];
+    if (assessment.workerId === workerId && !isFollowUp) count++;
+  }
+  return count;
+}
+
 // ---------- noise assessments ----------
 
 export function getNoiseAssessments() {
@@ -143,20 +158,6 @@ export function saveNoiseAssessment(assessment) {
 
 export function deleteNoiseAssessment(assessmentId) {
   return deleteItemFromList(STORAGE_KEYS.noiseAssessments, assessmentId);
-}
-
-// ---------- feedback (usability questionnaire) ----------
-
-export function getFeedbackResponses() {
-  return getList(STORAGE_KEYS.feedbackResponses);
-}
-
-export function saveFeedbackResponse(response) {
-  return saveItemInList(STORAGE_KEYS.feedbackResponses, response);
-}
-
-export function deleteFeedbackResponse(responseId) {
-  return deleteItemFromList(STORAGE_KEYS.feedbackResponses, responseId);
 }
 
 // ---------- action plan status (done / open) ----------
@@ -196,7 +197,6 @@ export function exportAllData() {
     workers: getWorkers(),
     postureAssessments: getPostureAssessments(),
     noiseAssessments: getNoiseAssessments(),
-    feedbackResponses: getFeedbackResponses(),
     actionStatuses: getActionStatuses(),
   };
 }
@@ -205,7 +205,6 @@ export function clearAllData() {
   writeValue(STORAGE_KEYS.workers, []);
   writeValue(STORAGE_KEYS.postureAssessments, []);
   writeValue(STORAGE_KEYS.noiseAssessments, []);
-  writeValue(STORAGE_KEYS.feedbackResponses, []);
   writeValue(STORAGE_KEYS.actionStatuses, {});
   saveSettings({ activeWorkerId: null, noiseDraft: [], noiseBaselineId: null, noiseDraftStartedAt: null });
 }
