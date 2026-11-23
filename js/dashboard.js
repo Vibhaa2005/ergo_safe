@@ -6,6 +6,7 @@ import { computeRula } from './rula.js';
 import { computeReba } from './reba.js';
 import { generateRecommendations } from './recommendations.js';
 import { analyseExposure } from './noise.js';
+import { buildWorkerRiskProfile } from './riskModel.js';
 import { downloadTextFile, toCsv, showToast } from './ui.js';
 
 const RISK_RANK = { negligible: 0, low: 1, medium: 2, high: 3, veryhigh: 4 };
@@ -50,11 +51,19 @@ export function refreshDashboardView() {
   for (const assessment of noiseAssessments) {
     if (RISK_RANK[assessment.riskLevel] >= RISK_RANK.high) overLimit++;
   }
+  // Workers due for a risk assessment: never assessed, or their latest
+  // assessment is more than 6 months old.
+  let assessmentDue = 0;
+  for (const worker of workers) {
+    const profile = buildWorkerRiskProfile(worker, postures, noiseAssessments);
+    if (profile.latestDate === null || profile.reviewDue) assessmentDue++;
+  }
   elements.summary.innerHTML =
     tile(workers.length, 'Workers', null) +
     tile(postures.length, 'Posture assessments', null) +
     tile(highPostures, 'High-risk postures', highPostures > 0 ? 'high' : 'low') +
-    tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low');
+    tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low') +
+    tile(assessmentDue, 'Workers due for risk assessment (new or > 6 months)', assessmentDue > 0 ? 'medium' : 'low');
 }
 
 function tile(value, label, levelKey) {
