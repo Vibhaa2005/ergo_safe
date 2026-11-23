@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ErgoSafe</title>
+  <meta name="description" content="Workplace posture (RULA / REBA) and noise exposure risk assessment with specific fixes for each worker.">
+  <meta name="theme-color" content="#0f5c5c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="34" height="34">
+      <span>ErgoSafe</span>
+    </div>
+    <div class="header-tools">
+      <label class="worker-picker">
+        <span class="worker-picker-label">Worker</span>
+        <select id="active-worker-select" aria-label="Active worker"></select>
+      </label>
+      <button id="contrast-toggle" class="icon-button" type="button" aria-pressed="false" title="High contrast mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+        <span class="visually-hidden">High contrast</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ============================ HOME / DASHBOARD ============================ -->
+    <section id="view-home" class="view" aria-labelledby="home-title" hidden>
+      <div class="hero">
+        <h1 id="home-title">Workplace risk at a glance</h1>
+        <p>Assess working postures with <strong>RULA / REBA</strong>, measure <strong>noise exposure</strong>, and get specific fixes sized to each worker's body.</p>
+        <div class="quick-actions">
+          <a class="big-action" href="#posture">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M13 7l-3 6 4 2-1 7M10 13l-4 2M14 9l4 3"/></svg>
+            <span>Assess posture</span>
+          </a>
+          <a class="big-action" href="#noise">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+            <span>Measure noise</span>
+          </a>
+          <a class="big-action" href="#workers">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
+            <span>Workers &amp; workstation</span>
+          </a>
+        </div>
+      </div>
+
+      <div id="home-summary" class="tile-row" aria-live="polite"></div>
+
+      <div class="card">
+        <h2>Priority actions</h2>
+        <p class="hint">Every saved posture assessment, highest risk first.</p>
+        <div id="home-priority-list" class="assessment-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Noise exposure</h2>
+        <div id="home-noise-list" class="assessment-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Workers</h2>
+        <div id="home-worker-table" class="table-wrap"></div>
+      </div>
+
+      <div class="card">
+        <h2>Data</h2>
+        <p class="hint">Data is stored only on this device. Export it for analysis or for the report.</p>
+        <div class="button-row">
+          <button type="button" class="button" id="export-postures-csv">Postures (CSV)</button>
+          <button type="button" class="button" id="export-noise-csv">Noise (CSV)</button>
+          <button type="button" class="button" id="export-feedback-csv">Feedback (CSV)</button>
+          <button type="button" class="button" id="export-json">Everything (JSON)</button>
+        </div>
+        <div class="button-row">
+          <button type="button" class="button" id="load-sample-data">Load sample data</button>
+          <button type="button" class="button danger" id="clear-all-data">Delete all data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ WORKERS ============================ -->
+    <section id="view-workers" class="view" aria-labelledby="workers-title" hidden>
+      <h1 id="workers-title" class="view-title">Workers &amp; workstation</h1>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Workers</h2>
+          <button type="button" class="button primary" id="add-worker-button">+ Add worker</button>
+        </div>
+        <div id="worker-list" class="worker-list"></div>
+      </div>
+
+      <form id="worker-form" class="card" hidden>
+        <h2 id="worker-form-title">Add worker</h2>
+        <input type="hidden" id="worker-id">
+        <div class="form-grid">
+          <label class="field">
+            <span>Name or ID</span>
+            <input type="text" id="worker-name" required autocomplete="off" placeholder="e.g. Ravi K / W-014">
+          </label>
+          <label class="field">
+            <span>Sex (for population percentile)</span>
+            <select id="worker-sex">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Height (stature) in cm</span>
+            <input type="number" id="worker-stature" required min="120" max="210" step="0.5" inputmode="decimal" placeholder="e.g. 165">
+          </label>
+          <label class="field">
+            <span>Body mass in kg (optional)</span>
+            <input type="number" id="worker-mass" min="30" max="200" step="0.5" inputmode="decimal">
+          </label>
+          <label class="field">
+            <span>Works mainly</span>
+            <select id="worker-posture">
+              <option value="standing">Standing</option>
+              <option value="seated">Seated</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Type of task</span>
+            <select id="worker-task">
+              <option value="precision">Precision (assembly of small parts, inspection)</option>
+              <option value="light" selected>Light (packing, light assembly, keyboard)</option>
+              <option value="heavy">Heavy (pressing down, using body weight)</option>
+            </select>
+          </label>
+          <label class="field field-wide">
+            <span>Workstation / zone</span>
+            <input type="text" id="worker-workstation" autocomplete="off" placeholder="e.g. Packing line 2">
+          </label>
+        </div>
+        <div class="button-row">
+          <button type="submit" class="button primary">Save worker</button>
+          <button type="button" class="button" id="worker-form-cancel">Cancel</button>
+        </div>
+      </form>
+
+      <div class="card" id="worker-profile-card">
+        <h2>Anthropometric profile</h2>
+        <div id="worker-profile"></div>
+      </div>
+
+      <div class="card">
+        <h2>Designing for everyone</h2>
+        <p class="hint">One adjustable workstation should fit from a small woman (5th percentile) to a tall man (95th percentile).</p>
+        <div id="population-ranges" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- ============================ POSTURE ============================ -->
+    <section id="view-posture" class="view" aria-labelledby="posture-title" hidden>
+      <h1 id="posture-title" class="view-title">Posture assessment</h1>
+
+      <div class="card">
+        <h2><span class="step-number">1</span> Capture the posture</h2>
+        <p class="hint">Photograph the worker <strong>from the side</strong>, whole body in frame, at the worst moment of the task. Everything stays on this device.</p>
+        <label class="field">
+          <span>Task being assessed</span>
+          <input type="text" id="posture-task" autocomplete="off" placeholder="e.g. Lifting cartons from floor pallet">
+        </label>
+        <div class="button-row">
+          <label class="button primary file-button">
+            <input type="file" accept="image/*" capture="environment" id="photo-capture-input">
+            Take photo
+          </label>
+          <label class="button file-button">
+            <input type="file" accept="image/*" id="photo-upload-input">
+            Upload image
+          </label>
+          <button type="button" class="button" id="live-camera-button">Live camera</button>
+          <button type="button" class="button" id="manual-mode-button">Enter angles by hand</button>
+        </div>
+        <p id="pose-status" class="status" role="status" aria-live="polite"></p>
+        <div class="stage" id="pose-stage" hidden>
+          <canvas id="pose-canvas" aria-label="Photo with measured body angles"></canvas>
+          <video id="pose-video" playsinline muted></video>
+          <div class="button-row" id="live-controls" hidden>
+            <button type="button" class="button primary" id="freeze-button">Freeze &amp; assess</button>
+            <button type="button" class="button" id="switch-camera-button">Switch camera</button>
+            <button type="button" class="button" id="stop-camera-button">Stop camera</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="posture-details" hidden>
+        <div class="card">
+          <h2><span class="step-number">2</span> Check the joint angles</h2>
+          <p class="hint">Angles marked <span class="tag tag-auto">auto</span> were measured from the image. If one looks wrong, drag its slider — you stay in control of the result.</p>
+          <div id="angle-sliders" class="angle-sliders"></div>
+        </div>
+
+        <div class="card">
+          <h2><span class="step-number">3</span> Describe the task</h2>
+
+          <fieldset class="choice-group">
+            <legend>Work posture</legend>
+            <label class="choice"><input type="radio" name="posture-mode" value="standing" checked> Standing</label>
+            <label class="choice"><input type="radio" name="posture-mode" value="seated"> Seated</label>
+          </fieldset>
+
+          <fieldset class="check-group">
+            <legend>Arms and wrists</legend>
+            <label class="check"><input type="checkbox" data-factor="shoulderRaised"> Shoulder is raised (shrugging)</label>
+            <label class="check"><input type="checkbox" data-factor="armAbducted"> Upper arm held out to the side</label>
+            <label class="check"><input type="checkbox" data-factor="armSupported"> Arm is supported or the person is leaning on it</label>
+            <label class="check"><input type="checkbox" data-factor="armAcrossMidline"> Hand works across the body or out to the side</label>
+            <label class="check"><input type="checkbox" data-factor="wristDeviated"> Wrist bent sideways (towards thumb or little finger)</label>
+            <label class="check"><input type="checkbox" data-factor="wristTwistEndRange"> Wrist twisted near the end of its range</label>
+          </fieldset>
+
+          <fieldset class="check-group">
+            <legend>Neck and trunk</legend>
+            <label class="check"><input type="checkbox" data-factor="neckTwisted"> Neck twisted</label>
+            <label class="check"><input type="checkbox" data-factor="neckSideBent"> Neck bent sideways</label>
+            <label class="check"><input type="checkbox" data-factor="trunkTwisted"> Trunk twisted</label>
+            <label class="check"><input type="checkbox" data-factor="trunkSideBent"> Trunk bent sideways</label>
+            <label class="check"><input type="checkbox" data-factor="trunkWellSupported"> Seated with the back well supported</label>
+          </fieldset>
+
+          <fieldset class="check-group">
+            <legend>Legs</legend>
+            <label class="check"><input type="checkbox" data-factor="legsSupported" checked> Both feet supported, weight evenly balanced</label>
+          </fieldset>
+
+          <fieldset class="check-group">
+            <legend>Load and grip</legend>
+            <div class="form-grid">
+              <label class="field">
+                <span>Load or force in kg</span>
+                <input type="number" id="load-kg" min="0" max="100" step="0.5" value="0" inputmode="decimal">
+              </label>
+              <label class="field">
+                <span>How the load is handled</span>
+                <select id="load-pattern">
+                  <option value="intermittent">Now and then (intermittent)</option>
+                  <option value="static">Held or repeated</option>
+                  <option value="shock">Sudden jerk / shock</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Grip on the load (REBA coupling)</span>
+                <select id="coupling">
+                  <option value="0">Good — proper handle</option>
+                  <option value="1">Fair — acceptable hand-hold</option>
+                  <option value="2">Poor — no handle, awkward</option>
+                  <option value="3">Unacceptable — unsafe grip</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="check-group">
+            <legend>Activity</legend>
+            <label class="check"><input type="checkbox" data-factor="staticOver1Min"> Posture held for more than 1 minute</label>
+            <label class="check"><input type="checkbox" data-factor="repeatedOver4PerMin"> Same action repeated more than 4 times a minute</label>
+            <label class="check"><input type="checkbox" data-factor="rapidOrUnstable"> Rapid large changes in posture, or unstable base</label>
+          </fieldset>
+        </div>
+
+        <div class="card" id="results-card">
+          <h2><span class="step-number">4</span> Risk result</h2>
+          <div class="segmented" role="group" aria-label="Assessment method">
+            <button type="button" class="segment" data-method="rula" aria-pressed="false">RULA</button>
+            <button type="button" class="segment" data-method="reba" aria-pressed="false">REBA</button>
+          </div>
+          <p id="method-recommendation" class="hint"></p>
+          <div id="score-summary" class="score-summary"></div>
+          <div class="result-grid">
+            <div id="body-map" class="body-map"></div>
+            <div id="score-breakdown" class="table-wrap"></div>
+          </div>
+          <h3>What to change</h3>
+          <ol id="recommendation-list" class="recommendation-list"></ol>
+          <button type="button" class="button primary wide" id="save-assessment-button">Save assessment</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ NOISE ============================ -->
+    <section id="view-noise" class="view" aria-labelledby="noise-title" hidden>
+      <h1 id="noise-title" class="view-title">Noise exposure</h1>
+
+      <div class="card">
+        <h2>Live sound level</h2>
+        <div id="calibration-badge"></div>
+        <div class="meter">
+          <div class="meter-reading">
+            <span id="noise-level" class="meter-value">--</span>
+            <span class="meter-unit">dB(A)</span>
+          </div>
+          <div id="noise-level-badge"></div>
+          <div class="gauge" aria-hidden="true">
+            <div class="gauge-zones"></div>
+            <div class="gauge-needle" id="gauge-needle"></div>
+          </div>
+          <div class="gauge-scale" aria-hidden="true"><span>30</span><span>55</span><span>80</span><span>105</span><span>130</span></div>
+        </div>
+        <dl class="stat-grid">
+          <div><dt>Average (Leq)</dt><dd id="noise-leq">--</dd></div>
+          <div><dt>Maximum</dt><dd id="noise-max">--</dd></div>
+          <div><dt>Measured for</dt><dd id="noise-duration">--</dd></div>
+          <div><dt>Allowed time at this level</dt><dd id="noise-allowed">--</dd></div>
+        </dl>
+        <div class="button-row">
+          <button type="button" class="button primary" id="noise-start-button">Start measuring</button>
+          <button type="button" class="button" id="noise-stop-button" disabled>Stop</button>
+          <button type="button" class="button" id="noise-reset-button">Reset</button>
+        </div>
+        <p id="noise-status" class="status" role="status" aria-live="polite"></p>
+
+        <div class="add-to-log">
+          <h3>Add this measurement to the worker's day</h3>
+          <div class="form-grid">
+            <label class="field">
+              <span>Zone / machine</span>
+              <input type="text" id="noise-zone-input" autocomplete="off" placeholder="e.g. Press shop">
+            </label>
+            <label class="field">
+              <span>Hours per shift spent here</span>
+              <input type="number" id="noise-hours-input" min="0.1" max="16" step="0.25" value="1" inputmode="decimal">
+            </label>
+          </div>
+          <button type="button" class="button" id="noise-add-to-log-button">Add measured level</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Daily exposure</h2>
+        <label class="field">
+          <span>Exposure standard</span>
+          <select id="noise-standard">
+            <option value="niosh">NIOSH (85 dB(A), 3 dB exchange) — more protective</option>
+            <option value="india">Factories Act, India (90 dB(A), 5 dB exchange) — legal limit</option>
+          </select>
+        </label>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Zone</th><th>Level dB(A)</th><th>Hours</th><th>Allowed</th><th>Dose</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+            <tbody id="exposure-rows"></tbody>
+          </table>
+        </div>
+        <details class="manual-entry">
+          <summary>Add a zone by hand</summary>
+          <div class="form-grid">
+            <label class="field"><span>Zone</span><input type="text" id="manual-zone" autocomplete="off"></label>
+            <label class="field"><span>Level dB(A)</span><input type="number" id="manual-level" min="40" max="140" step="0.5" inputmode="decimal"></label>
+            <label class="field"><span>Hours</span><input type="number" id="manual-hours" min="0.1" max="16" step="0.25" inputmode="decimal"></label>
+          </div>
+          <button type="button" class="button" id="manual-add-button">Add zone</button>
+        </details>
+        <div id="exposure-results"></div>
+        <h3>What to do</h3>
+        <ol id="noise-recommendations" class="recommendation-list"></ol>
+        <button type="button" class="button primary wide" id="noise-save-button">Save noise assessment</button>
+      </div>
+
+      <div class="card">
+        <h2>Calibrate the microphone</h2>
+        <p class="hint">Phone microphones differ by several decibels. For accurate readings, place the phone next to a calibrated sound level meter, play a steady sound, start measuring, and enter the meter's reading.</p>
+        <div class="form-grid">
+          <label class="field">
+            <span>Reference meter reading, dB(A)</span>
+            <input type="number" id="calibration-reference" min="30" max="130" step="0.1" inputmode="decimal">
+          </label>
+        </div>
+        <div class="button-row">
+          <button type="button" class="button primary" id="calibrate-button">Calibrate to meter</button>
+          <button type="button" class="button" id="rough-calibrate-button">Rough: this room is quiet (≈ 40 dB(A))</button>
+          <button type="button" class="button" id="reset-calibration-button">Reset</button>
+        </div>
+        <p class="hint" id="calibration-offset"></p>
+      </div>
+    </section>
+
+    <!-- ============================ FEEDBACK ============================ -->
+    <section id="view-feedback" class="view" aria-labelledby="feedback-title" hidden>
+      <h1 id="feedback-title" class="view-title">Your feedback</h1>
+      <form id="feedback-form" class="card">
+        <p class="hint">After trying the app, please answer honestly. There are no right answers. (System Usability Scale + comfort ratings.)</p>
+        <div class="form-grid">
+          <label class="field">
+            <span>Participant code</span>
+            <input type="text" id="participant-code" required autocomplete="off" placeholder="e.g. P01">
+          </label>
+          <label class="field">
+            <span>Role</span>
+            <select id="participant-role">
+              <option value="student">Student / evaluator</option>
+              <option value="worker">Worker</option>
+              <option value="supervisor">Supervisor / safety officer</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+        </div>
+        <h3>Usability (1 = strongly disagree, 5 = strongly agree)</h3>
+        <div id="sus-items"></div>
+        <h3>Look and feel</h3>
+        <div id="aesthetic-items"></div>
+        <label class="field">
+          <span>Anything you would change?</span>
+          <textarea id="feedback-comments" rows="3"></textarea>
+        </label>
+        <button type="submit" class="button primary wide">Submit feedback</button>
+      </form>
+      <div class="card">
+        <h2>Responses so far</h2>
+        <div id="feedback-summary"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tab-bar" aria-label="Main">
+    <a href="#home" data-tab="home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="#workers" data-tab="workers">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
+      <span>Workers</span>
+    </a>
+    <a href="#posture" data-tab="posture">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M13 7l-3 6 4 2-1 7M10 13l-4 2M14 9l4 3"/></svg>
+      <span>Posture</span>
+    </a>
+    <a href="#noise" data-tab="noise">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+      <span>Noise</span>
+    </a>
+    <a href="#feedback" data-tab="feedback">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+      <span>Feedback</span>
+    </a>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
