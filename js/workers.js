@@ -12,6 +12,7 @@ import { escapeHtml, showToast } from './ui.js';
 const TASK_LABELS = { precision: 'Precision work', light: 'Light work', heavy: 'Heavy work' };
 
 let elements = {};
+const openWorkerIds = new Set();   // worker folds the user has opened
 
 export function initWorkersView() {
   elements = {
@@ -40,18 +41,35 @@ export function initWorkersView() {
     if (!button) {
       return;
     }
+    // The buttons sit inside the fold's title row: don't let a click on them
+    // also open or close the fold.
+    event.preventDefault();
     const workerId = button.dataset.workerId;
-    if (button.dataset.action === 'select') {
-      storage.saveSettings({ activeWorkerId: workerId });
-    } else if (button.dataset.action === 'edit') {
+    if (button.dataset.action === 'edit') {
       openForm(storage.getWorkerById(workerId));
     } else if (button.dataset.action === 'delete') {
       const worker = storage.getWorkerById(workerId);
       if (worker && confirm('Delete worker "' + worker.name + '"? Their saved assessments stay.')) {
+        openWorkerIds.delete(workerId);
         storage.deleteWorker(workerId);
       }
     }
   });
+
+  // Remember which worker folds are open, so they stay open when the list
+  // is redrawn (e.g. after editing). "toggle" does not bubble, so listen
+  // in the capture phase.
+  elements.list.addEventListener('toggle', function (event) {
+    const fold = event.target;
+    if (!fold.matches || !fold.matches('details.worker-fold')) {
+      return;
+    }
+    if (fold.open) {
+      openWorkerIds.add(fold.dataset.workerId);
+    } else {
+      openWorkerIds.delete(fold.dataset.workerId);
+    }
+  }, true);
 
   renderPopulationRanges();
 }
@@ -97,35 +115,35 @@ function saveWorkerFromForm(event) {
     taskType: elements.task.value,
     workstation: elements.workstation.value.trim(),
   };
+  openWorkerIds.add(worker.id);          // show the saved worker's profile
   storage.saveWorker(worker);
   storage.saveSettings({ activeWorkerId: worker.id });
   closeForm();
-  showToast('Worker saved and selected.');
+  showToast('Worker saved.');
 }
 
 function renderWorkerList() {
   const workers = storage.getWorkers();
-  const activeId = storage.getSettings().activeWorkerId;
   if (workers.length === 0) {
     elements.list.innerHTML = '<p class="empty">No workers yet. Add one to get workstation heights sized to their body.</p>';
     return;
   }
-  let html = '<p class="hint">Tap <strong>Select</strong> on a worker to open their anthropometric profile.</p>';
+  // Each worker is a fold: the title row shows the worker with Edit / Delete
+  // on the right; opening it shows their anthropometric profile.
+  let html = '<p class="hint">Tap a worker to open their anthropometric profile.</p>';
   for (const worker of workers) {
-    const isActive = worker.id === activeId;
-    html += '<div class="worker-entry' + (isActive ? ' active' : '') + '"><div class="worker-card' + (isActive ? ' active' : '') + '">' +
-      '<div class="worker-info"><strong>' + escapeHtml(worker.name) + '</strong>' +
-      (isActive ? ' <span class="tag tag-auto">selected</span>' : '') +
-      '<span class="hint">' + worker.statureCm + ' cm · ' + (worker.workPosture === 'seated' ? 'Seated' : 'Standing') + ' · ' +
-      TASK_LABELS[worker.taskType] + (worker.workstation ? ' · ' + escapeHtml(worker.workstation) : '') + '</span></div>' +
-      '<div class="worker-actions">' +
-        (isActive ? '' : '<button type="button" class="button small" data-action="select" data-worker-id="' + worker.id + '">Select</button>') +
-        '<button type="button" class="button small" data-action="edit" data-worker-id="' + worker.id + '">Edit</button>' +
-        '<button type="button" class="button small danger" data-action="delete" data-worker-id="' + worker.id + '">Delete</button>' +
-      '</div></div>' +
-      // The selected worker's profile opens directly under their own card.
-      (isActive ? '<div class="worker-profile-panel"><h3>Anthropometric profile</h3>' + profileHtml(worker) + '</div>' : '') +
-      '</div>';
+    html += '<details class="worker-fold" data-worker-id="' + worker.id + '"' + (openWorkerIds.has(worker.id) ? ' open' : '') + '>' +
+      '<summary class="worker-card">' +
+        '<strong class="worker-name">' + escapeHtml(worker.name) + '</strong>' +
+        '<span class="hint worker-details">' + worker.statureCm + ' cm · ' + (worker.workPosture === 'seated' ? 'Seated' : 'Standing') + ' · ' +
+        TASK_LABELS[worker.taskType] + (worker.workstation ? ' · ' + escapeHtml(worker.workstation) : '') + '</span>' +
+        '<div class="worker-actions">' +
+          '<button type="button" class="button small" data-action="edit" data-worker-id="' + worker.id + '">Edit</button>' +
+          '<button type="button" class="button small danger" data-action="delete" data-worker-id="' + worker.id + '">Delete</button>' +
+        '</div>' +
+      '</summary>' +
+      '<div class="worker-profile-panel"><h3>Anthropometric profile</h3>' + profileHtml(worker) + '</div>' +
+      '</details>';
   }
   elements.list.innerHTML = html;
 }

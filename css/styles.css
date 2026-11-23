@@ -344,16 +344,28 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 
 /* ---------- workers ---------- */
 .worker-list { display: flex; flex-direction: column; gap: 8px; }
+/* Each worker is a fold: title row (name + Edit/Delete), profile inside. */
+.worker-fold { border: 1px solid var(--colour-border); border-radius: 12px; overflow: hidden; background: var(--colour-surface); }
+.worker-fold[open] { border: 2px solid var(--colour-primary); }
+/* Row 1: name | Edit Delete | chevron.  Row 2: details across the full width. */
 .worker-card {
-  display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
-  border: 1px solid var(--colour-border); border-radius: 12px; padding: 10px 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 10px;
+  padding: 10px 12px; min-height: var(--touch); cursor: pointer; list-style: none;
 }
-.worker-card.active { border: 2px solid var(--colour-primary); background: var(--colour-primary-soft); }
-/* The selected worker's card and their profile read as one block. */
-.worker-entry.active { border: 2px solid var(--colour-primary); border-radius: 12px; overflow: hidden; }
-.worker-entry.active .worker-card { border: 0; border-radius: 0; }
+.worker-name { grid-column: 1; grid-row: 1; }
+.worker-card .worker-actions { grid-column: 2; grid-row: 1; }
+.worker-details { grid-column: 1 / -1; grid-row: 2; }
+.worker-card::-webkit-details-marker { display: none; }
+.worker-fold[open] > .worker-card { background: var(--colour-primary-soft); }
+/* Chevron after the buttons: points down when closed, up when open. */
+.worker-card::after {
+  grid-column: 3; grid-row: 1;
+  content: ""; width: 10px; height: 10px; flex: none; margin: 0 4px 4px 2px;
+  border-right: 3px solid var(--colour-primary); border-bottom: 3px solid var(--colour-primary);
+  transform: rotate(45deg); transition: transform 0.15s;
+}
+.worker-fold[open] > .worker-card::after { transform: rotate(-135deg); margin-bottom: -4px; }
 .worker-profile-panel { padding: 12px 14px 14px; border-top: 1px solid var(--colour-border); }
-.worker-info .tag { align-self: flex-start; margin: 2px 0; }
 .worker-profile-panel h3 { margin-top: 0; }
 
 /* Collapsible card (e.g. "Designing for everyone") */
@@ -389,8 +401,8 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 
 /* Risk screen: export + priority actions buttons */
 .risk-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 8px 0 16px; max-width: 360px; }
-.worker-info { display: flex; flex-direction: column; }
-.worker-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.worker-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.worker-actions { display: flex; gap: 6px; flex: none; }
 
 .percentile-block { margin-bottom: 8px; }
 .percentile-bar {
