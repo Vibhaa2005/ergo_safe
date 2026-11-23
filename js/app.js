@@ -1,6 +1,6 @@
 // app.js
-// Starts the app: screen switching, the worker picker in the header,
-// high-contrast mode and offline support.
+// Starts the app: screen switching, the worker picker in the header
+// and offline support.
 
 import * as storage from './storage.js';
 import { initDashboardView, refreshDashboardView } from './dashboard.js';
@@ -62,12 +62,6 @@ function renderWorkerPicker() {
   select.innerHTML = html;
 }
 
-function applyContrast() {
-  const highContrast = storage.getSettings().highContrast;
-  document.documentElement.classList.toggle('high-contrast', highContrast);
-  document.getElementById('contrast-toggle').setAttribute('aria-pressed', highContrast ? 'true' : 'false');
-}
-
 function start() {
   initDashboardView();
   initWorkersView();
@@ -78,14 +72,10 @@ function start() {
   document.getElementById('active-worker-select').addEventListener('change', function (event) {
     storage.saveSettings({ activeWorkerId: event.target.value || null });
   });
-  document.getElementById('contrast-toggle').addEventListener('click', function () {
-    storage.saveSettings({ highContrast: !storage.getSettings().highContrast });
-  });
 
   // Whenever saved data changes, redraw the header and the visible screen.
   window.addEventListener('ergosafe:data-changed', function () {
     renderWorkerPicker();
-    applyContrast();
     if (currentView) {
       VIEWS[currentView].refresh();
     }
@@ -94,7 +84,6 @@ function start() {
   window.addEventListener('hashchange', function () { showView(viewFromHash()); });
 
   renderWorkerPicker();
-  applyContrast();
   showView(viewFromHash());
 
   if ('serviceWorker' in navigator) {

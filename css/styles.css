@@ -2,7 +2,7 @@
    Human factors choices applied to the app itself:
    - touch targets at least 48 px (usable with gloves)
    - risk shown by colour + icon + word, never colour alone
-   - body text 16 px+, strong contrast; a high-contrast mode for glare
+   - body text 16 px+, strong contrast for glare in factories
    - one column on phones, wider layout on tablets/laptops */
 
 :root {
@@ -438,11 +438,15 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
   .quick-actions { grid-template-columns: 1fr; }
   .big-action { flex-direction: row; min-height: 60px; justify-content: flex-start; padding: 0 16px; }
   .worker-picker-label { display: none; }
-  .worker-picker select { max-width: 60vw; font-size: 0.95rem; }
-  /* Logo only on small phones, so the worker selector has room for its text. */
-  .brand span { display: none; }
+  .worker-picker select { max-width: 58vw; font-size: 0.95rem; }
   .meter-value { font-size: 3.4rem; }
   .button-row .button { flex: 1 1 auto; }
+}
+
+@media (max-width: 340px) {
+  .app-header { gap: 8px; padding-left: 12px; padding-right: 12px; }
+  .brand { gap: 6px; font-size: 1.1rem; }
+  .worker-picker select { font-size: 0.88rem; padding: 0 4px 0 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
