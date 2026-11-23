@@ -98,6 +98,7 @@ a { color: var(--colour-primary); }
 .header-tools { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .worker-picker { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .worker-picker-label { font-size: 0.85rem; opacity: 0.9; }
+.worker-picker-icon { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .worker-picker select {
   min-height: 40px; max-width: 42vw; border-radius: 10px; border: 0;
   padding: 0 8px; font-size: 0.95rem; color: var(--colour-text); background: #ffffff;
@@ -437,6 +438,9 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
   .quick-actions { grid-template-columns: 1fr; }
   .big-action { flex-direction: row; min-height: 60px; justify-content: flex-start; padding: 0 16px; }
   .worker-picker-label { display: none; }
+  .worker-picker select { max-width: 60vw; font-size: 0.95rem; }
+  /* Logo only on small phones, so the worker selector has room for its text. */
+  .brand span { display: none; }
   .meter-value { font-size: 3.4rem; }
   .button-row .button { flex: 1 1 auto; }
 }

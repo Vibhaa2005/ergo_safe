@@ -55,7 +55,7 @@ function renderWorkerPicker() {
   const select = document.getElementById('active-worker-select');
   const workers = storage.getWorkers();
   const activeId = storage.getSettings().activeWorkerId;
-  let html = '<option value="">— none —</option>';
+  let html = '<option value="">Select worker</option>';
   for (const worker of workers) {
     html += '<option value="' + worker.id + '"' + (worker.id === activeId ? ' selected' : '') + '>' + escapeHtml(worker.name) + '</option>';
   }
