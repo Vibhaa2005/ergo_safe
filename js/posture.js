@@ -129,8 +129,13 @@ export function refreshPostureView() {
 function renderQuota() {
   const quota = document.getElementById('posture-quota');
   const worker = storage.getActiveWorker();
+  // Switching to a different worker cancels a re-assessment of someone else's posture.
+  if (state.baseline && (!worker || state.baseline.workerId !== worker.id)) {
+    state.baseline = null;
+    renderReassessBanner();
+  }
   if (!worker) {
-    quota.innerHTML = 'No worker selected — choose one in the header so the posture is saved to their record.';
+    quota.innerHTML = 'Select the worker above so the posture is saved to their record.';
     quota.className = 'posture-quota';
     return;
   }

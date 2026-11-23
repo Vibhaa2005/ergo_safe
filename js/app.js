@@ -1,6 +1,5 @@
 // app.js
-// Starts the app: screen switching, the worker picker in the header
-// and offline support.
+// Starts the app: screen switching, the worker dropdowns and offline support.
 
 import * as storage from './storage.js';
 import { initDashboardView, refreshDashboardView } from './dashboard.js';
@@ -51,15 +50,17 @@ function showView(name) {
   }
 }
 
-function renderWorkerPicker() {
-  const select = document.getElementById('active-worker-select');
+// Fills every "Worker being assessed" dropdown (Posture and Noise screens).
+function renderWorkerSelects() {
   const workers = storage.getWorkers();
   const activeId = storage.getSettings().activeWorkerId;
   let html = '<option value="">Select worker</option>';
   for (const worker of workers) {
     html += '<option value="' + worker.id + '"' + (worker.id === activeId ? ' selected' : '') + '>' + escapeHtml(worker.name) + '</option>';
   }
-  select.innerHTML = html;
+  for (const select of document.querySelectorAll('[data-worker-select]')) {
+    select.innerHTML = html;
+  }
 }
 
 function start() {
@@ -69,13 +70,15 @@ function start() {
   initNoiseView();
   initProfileView();
 
-  document.getElementById('active-worker-select').addEventListener('change', function (event) {
-    storage.saveSettings({ activeWorkerId: event.target.value || null });
+  document.addEventListener('change', function (event) {
+    if (event.target.matches('[data-worker-select]')) {
+      storage.saveSettings({ activeWorkerId: event.target.value || null });
+    }
   });
 
   // Whenever saved data changes, redraw the header and the visible screen.
   window.addEventListener('ergosafe:data-changed', function () {
-    renderWorkerPicker();
+    renderWorkerSelects();
     if (currentView) {
       VIEWS[currentView].refresh();
     }
@@ -83,7 +86,7 @@ function start() {
 
   window.addEventListener('hashchange', function () { showView(viewFromHash()); });
 
-  renderWorkerPicker();
+  renderWorkerSelects();
   showView(viewFromHash());
 
   if ('serviceWorker' in navigator) {

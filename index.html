@@ -19,13 +19,6 @@
       <img src="icons/icon-192.png" alt="" width="34" height="34">
       <span>ErgoSafe</span>
     </div>
-    <div class="header-tools">
-      <label class="worker-picker">
-        <svg class="worker-picker-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
-        <span class="worker-picker-label">Worker</span>
-        <select id="active-worker-select" aria-label="Active worker"></select>
-      </label>
-    </div>
   </header>
 
   <main id="main">
@@ -165,6 +158,10 @@
         <h2><span class="step-number">1</span> Capture the posture</h2>
         <p class="hint">Photograph the worker <strong>from the side</strong>, whole body in frame, at the worst moment of the task. Everything stays on this device.</p>
         <div id="reassess-banner" class="reassess-banner" hidden></div>
+        <label class="field">
+          <span>Worker being assessed</span>
+          <select id="posture-worker-select" data-worker-select></select>
+        </label>
         <label class="field">
           <span>Task being assessed</span>
           <input type="text" id="posture-task" autocomplete="off" placeholder="e.g. Lifting cartons from floor pallet">
@@ -314,6 +311,10 @@
 
       <div class="card">
         <h2>Live sound level</h2>
+        <label class="field">
+          <span>Worker being assessed</span>
+          <select id="noise-worker-select" data-worker-select></select>
+        </label>
         <div class="meter">
           <div class="meter-reading">
             <span id="noise-level" class="meter-value">--</span>

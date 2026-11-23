@@ -546,7 +546,11 @@ function saveNoiseAssessment() {
     riskLevel: selected.status.riskLevel,
     statusLabel: selected.status.label,
     calibration: storage.getSettings().microphoneCalibration,
-    baselineId: storage.getSettings().noiseBaselineId || null,
+    // Only link to the earlier assessment if it belongs to the same worker.
+    baselineId: (function () {
+      const baseline = findNoiseAssessment(storage.getSettings().noiseBaselineId);
+      return baseline && worker && baseline.workerId === worker.id ? baseline.id : null;
+    })(),
     durationSeconds: storage.getSettings().noiseDraftStartedAt ? Math.round((Date.now() - storage.getSettings().noiseDraftStartedAt) / 1000) : null,
   };
   if (storage.saveNoiseAssessment(assessment)) {
