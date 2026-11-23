@@ -159,9 +159,21 @@ export function analysePose(landmarks, width, height) {
   // Knee: how much the knee is bent (0 = straight leg).
   const knee = 180 - insideAngle(points.hip, points.knee, points.ankle);
 
-  // Seated guess: thigh close to horizontal.
+  // Seated guess: thigh close to horizontal. Only trusted when the hip and
+  // knee are clearly visible — otherwise assume standing.
+  const legsVisible = Math.min(points.hip.visibility, points.knee.visibility) >= 0.6;
   const thighFromVertical = Math.abs(signedAngle(down, vectorBetween(points.hip, points.knee)));
-  const seatedGuess = thighFromVertical > 50;
+  const seatedGuess = legsVisible && thighFromVertical > 50;
+
+  // Camera-view check. RULA/REBA angles are measured in the side (sagittal)
+  // plane. In a side view the two shoulders overlap; in a front view they are
+  // far apart compared with the trunk length, and the angles become wrong.
+  const leftShoulder = pixelPoints[LANDMARKS.shoulder.left];
+  const rightShoulder = pixelPoints[LANDMARKS.shoulder.right];
+  const shoulderSpread = Math.abs(leftShoulder.x - rightShoulder.x);
+  const trunkLength = Math.hypot(trunkVector.x, trunkVector.y);
+  const shoulderToTrunkRatio = trunkLength > 0 ? shoulderSpread / trunkLength : 0;
+  const looksFrontOn = shoulderToTrunkRatio > 0.45;
 
   function confidenceOf(names) {
     let smallest = 1;
@@ -177,6 +189,9 @@ export function analysePose(landmarks, width, height) {
     points: points,
     allPoints: pixelPoints,
     seatedGuess: seatedGuess,
+    legsVisible: legsVisible,
+    looksFrontOn: looksFrontOn,
+    shoulderToTrunkRatio: shoulderToTrunkRatio,
     angles: {
       trunk: trunk,
       neck: neck,

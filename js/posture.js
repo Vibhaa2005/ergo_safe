@@ -180,7 +180,8 @@ function setAnglesFromPose(pose) {
     const key = definition.key;
     const measured = Math.max(definition.min, Math.min(definition.max, pose.angles[key]));
     state.angles[key] = Math.round(measured);
-    state.angleSource[key] = pose.confidence[key] >= 0.6 ? 'auto' : 'check';
+    // A front-on photo makes every side-view angle unreliable.
+    state.angleSource[key] = (pose.confidence[key] >= 0.6 && !pose.looksFrontOn) ? 'auto' : 'check';
   }
   if (!state.postureModeChosenByUser) {
     const wanted = pose.seatedGuess ? 'seated' : 'standing';
@@ -236,6 +237,8 @@ async function handleFileInput(event) {
   }
 
   if (!landmarks) {
+    // Do not keep angles from a previous photo — they belong to someone else.
+    resetAnglesToDefaults();
     setStatus('No person found. Use a side-on photo with the whole body visible — or set the angles by hand below.', true);
     startDetails(false);
     return;
@@ -243,7 +246,13 @@ async function handleFileInput(event) {
 
   state.pose = analysePose(landmarks, imageCanvas.width, imageCanvas.height);
   setAnglesFromPose(state.pose);
-  setStatus('Body found (' + state.pose.side + ' side facing the camera). Check the angles, then describe the task.');
+  if (state.pose.looksFrontOn) {
+    setStatus('This photo looks front-on. RULA and REBA need a SIDE view — the angles below are probably wrong. Retake from the side, or correct each slider.', true);
+  } else if (!state.pose.legsVisible) {
+    setStatus('Body found, but the legs are not clearly visible. Check the knee angle and the standing / seated choice.');
+  } else {
+    setStatus('Body found (' + state.pose.side + ' side facing the camera). Check the angles, then describe the task.');
+  }
   startDetails(true);
 }
 
@@ -308,6 +317,11 @@ function liveLoop() {
         state.lastLiveUpdate = now;
         setAnglesFromPose(state.pose);
         recompute();
+        if (state.pose.looksFrontOn) {
+          setStatus('Turn the person side-on to the camera — front views give wrong angles.', true);
+        } else {
+          setStatus('Live: the score updates as the person moves. Press "Freeze & assess" at the worst moment.');
+        }
       }
       drawPoseOverlay(context, state.pose, state.angles, currentPartLevels());
     }
@@ -353,14 +367,18 @@ function stopLiveCamera() {
   }
 }
 
-function startManualMode() {
-  stopLiveCamera();
-  state.sourceImage = null;
+function resetAnglesToDefaults() {
   state.pose = null;
-  elements.stage.hidden = true;
   state.angles = Object.assign({}, DEFAULT_ANGLES);
   state.angleSource = {};
   updateAllSliders();
+}
+
+function startManualMode() {
+  stopLiveCamera();
+  state.sourceImage = null;
+  elements.stage.hidden = true;
+  resetAnglesToDefaults();
   setStatus('Manual mode: set each angle with its slider (measure from a photo or by observation).');
   startDetails(false);
   elements.details.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -458,8 +476,17 @@ function renderScoreSummary() {
   const activeLevel = RISK_LEVELS[active.riskLevel];
   const otherLevel = RISK_LEVELS[other.riskLevel];
   const worker = storage.getActiveWorker();
+  let unmeasuredCount = 0;
+  for (const definition of ANGLE_DEFINITIONS) {
+    const source = state.angleSource[definition.key];
+    if (!source || source === 'default') unmeasuredCount++;
+  }
+  const placeholderWarning = unmeasuredCount > 0
+    ? '<p class="placeholder-warning">' + riskBadge('medium', unmeasuredCount + ' of 6 angles not measured') +
+      ' They use neutral placeholder values — set their sliders before trusting this score.</p>'
+    : '';
   elements.scoreSummary.className = 'score-summary risk-border-' + active.riskLevel;
-  elements.scoreSummary.innerHTML =
+  elements.scoreSummary.innerHTML = placeholderWarning +
     '<div class="score-big"><span class="score-number">' + active.finalScore + '</span><span class="score-max">/ ' + active.maxScore + '</span></div>' +
     '<div class="score-text">' +
       '<div class="score-method">' + active.method + ' score</div>' +

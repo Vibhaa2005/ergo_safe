@@ -443,3 +443,5 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+.placeholder-warning { flex-basis: 100%; margin: 0; }
