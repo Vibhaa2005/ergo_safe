@@ -13,11 +13,9 @@ import {
 } from './riskViews.js';
 import { prepareReassessment } from './posture.js';
 import { prepareNoiseReassessment } from './noise.js';
-import { renderPriorityActions, deletePostureWithFollowUps, renderNoisePriority, deleteNoiseWithFollowUps } from './priorityActions.js';
 import { escapeHtml } from './ui.js';
 
 let container = null;
-let priorityOpen = false;   // is the "Priority actions" list showing?
 
 function openWorker(workerId) {
   storage.saveSettings({ activeWorkerId: workerId });
@@ -35,21 +33,6 @@ export function initProfileView() {
   });
 
   container.addEventListener('click', function (event) {
-    if (event.target.closest('[data-toggle-priority]')) {
-      priorityOpen = !priorityOpen;
-      refreshFactoryView();
-      return;
-    }
-    const deleteButton = event.target.closest('[data-delete-posture]');
-    if (deleteButton) {
-      deletePostureWithFollowUps(deleteButton.dataset.deletePosture);
-      return;
-    }
-    const deleteNoiseButton = event.target.closest('[data-delete-noise]');
-    if (deleteNoiseButton) {
-      deleteNoiseWithFollowUps(deleteNoiseButton.dataset.deleteNoise);
-      return;
-    }
     const postureButton = event.target.closest('[data-reassess-posture]');
     if (postureButton) {
       prepareReassessment(postureButton.dataset.reassessPosture);
@@ -78,13 +61,7 @@ export function refreshFactoryView() {
     '<h2 class="view-title">Factory risk — all workers</h2>' +
     '<div class="risk-actions">' +
       '<a class="button primary" href="report.html?factory=1">Export factory report (PDF)</a>' +
-      '<button type="button" class="button" data-toggle-priority aria-expanded="' + (priorityOpen ? 'true' : 'false') + '" aria-controls="priority-panel">' +
-        (priorityOpen ? 'Hide priority actions' : 'Priority actions') + '</button>' +
-    '</div>' +
-    '<div class="card" id="priority-panel"' + (priorityOpen ? '' : ' hidden') + '><h2>Priority actions</h2>' +
-      (priorityOpen
-        ? '<h3>Posture</h3>' + renderPriorityActions() + '<h3>Noise exposure</h3>' + renderNoisePriority()
-        : '') +
+      '<a class="button" href="#priority">Priority actions</a>' +
     '</div>' +
     renderFactoryTotals(table) +
     '<div class="card">' +

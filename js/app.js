@@ -7,6 +7,7 @@ import { initWorkersView, refreshWorkersView } from './workers.js';
 import { initPostureView, refreshPostureView, leavePostureView } from './posture.js';
 import { initNoiseView, refreshNoiseView, leaveNoiseView } from './noise.js';
 import { initProfileView, refreshProfileView, refreshFactoryView } from './profile.js';
+import { initPriorityView, refreshPriorityView } from './priorityActions.js';
 import { escapeHtml } from './ui.js';
 
 // Each screen: which <section> it uses, which tab is highlighted, and the
@@ -18,6 +19,7 @@ const VIEWS = {
   noise: { section: 'noise', tab: 'noise', refresh: refreshNoiseView, leave: leaveNoiseView },
   risk: { section: 'risk', tab: 'risk', refresh: refreshFactoryView, leave: null },              // all workers
   'risk-worker': { section: 'risk', tab: 'risk', refresh: refreshProfileView, leave: null },     // one worker
+  priority: { section: 'priority', tab: 'risk', refresh: refreshPriorityView, leave: null },      // priority actions
 };
 
 let currentView = null;
@@ -69,6 +71,7 @@ function start() {
   initPostureView();
   initNoiseView();
   initProfileView();
+  initPriorityView();
 
   document.addEventListener('change', function (event) {
     if (event.target.matches('[data-worker-select]')) {

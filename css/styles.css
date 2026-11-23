@@ -374,6 +374,16 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 .step:not([open]) { padding-top: 10px; padding-bottom: 10px; }
 .optional { font-weight: 400; font-size: 0.9rem; color: var(--colour-text-muted); }
 
+/* Posture steps 2–4 before a posture is captured */
+.step-locked { display: none; }
+.locked .step-locked {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: 10px; background: var(--colour-surface-muted);
+  border: 2px dashed var(--colour-border); font-weight: 600;
+}
+.locked .step-content { display: none; }
+.locked .step > summary h2 { color: var(--colour-text-muted); }
+
 /* Risk screen: export + priority actions buttons */
 .risk-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 8px 0 16px; max-width: 360px; }
 .worker-info { display: flex; flex-direction: column; }

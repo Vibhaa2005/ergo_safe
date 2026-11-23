@@ -1,9 +1,45 @@
 // priorityActions.js
-// "Priority actions": every saved posture assessment, highest risk first,
-// with its most important fix. Shown on the Risk screen behind a button.
+// The Priority actions page (#priority, opened from the Risk screen):
+// every posture assessment (highest risk first, with its most important fix)
+// and every noise assessment (highest daily dose first).
 
 import * as storage from './storage.js';
+import { prepareReassessment } from './posture.js';
+import { prepareNoiseReassessment } from './noise.js';
 import { riskBadge, escapeHtml, formatDate, RISK_LEVELS } from './ui.js';
+
+let page = null;
+
+export function initPriorityView() {
+  page = document.getElementById('priority-page');
+  page.addEventListener('click', function (event) {
+    const deletePosture = event.target.closest('[data-delete-posture]');
+    if (deletePosture) {
+      deletePostureWithFollowUps(deletePosture.dataset.deletePosture);
+      return;
+    }
+    const deleteNoise = event.target.closest('[data-delete-noise]');
+    if (deleteNoise) {
+      deleteNoiseWithFollowUps(deleteNoise.dataset.deleteNoise);
+      return;
+    }
+    const reassessPosture = event.target.closest('[data-reassess-posture]');
+    if (reassessPosture) {
+      prepareReassessment(reassessPosture.dataset.reassessPosture);
+      return;
+    }
+    const reassessNoise = event.target.closest('[data-reassess-noise]');
+    if (reassessNoise) {
+      prepareNoiseReassessment(reassessNoise.dataset.reassessNoise);
+    }
+  });
+}
+
+export function refreshPriorityView() {
+  page.innerHTML =
+    '<div class="card"><h2>Posture</h2>' + renderPriorityActions() + '</div>' +
+    '<div class="card"><h2>Noise exposure</h2>' + renderNoisePriority() + '</div>';
+}
 
 const RISK_RANK = { negligible: 0, low: 1, medium: 2, high: 3, veryhigh: 4 };
 

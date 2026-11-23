@@ -75,6 +75,13 @@ export function initPostureView() {
     reassessBanner: document.getElementById('reassess-banner'),
   };
 
+  // Steps 2–4 before anything is captured: "Go to step 1".
+  elements.details.addEventListener('click', function (event) {
+    if (event.target.closest('[data-go-step1]')) {
+      openStep('posture-step-1');
+    }
+  });
+
   elements.reassessBanner.addEventListener('click', function (event) {
     if (event.target.closest('[data-cancel-reassess]')) {
       state.baseline = null;
@@ -439,7 +446,7 @@ function startManualMode() {
 
 function startDetails(fromCamera) {
   state.hasPosture = true;
-  elements.details.hidden = false;
+  elements.details.classList.remove('locked');
   if (!fromCamera) {
     updateAllSliders();
   }
@@ -610,7 +617,8 @@ export function prepareReassessment(assessmentId) {
   state.method = baseline.method;
   state.postureModeChosenByUser = true;
   elements.stage.hidden = true;
-  elements.details.hidden = true;
+  elements.details.classList.add('locked');
+  document.getElementById('step4-score').innerHTML = '';
   setStatus('');
 
   // Same worker, same task description, same task factors — only the posture changes.

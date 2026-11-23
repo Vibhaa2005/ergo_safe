@@ -170,15 +170,20 @@
         </div>
       </details>
 
-      <div id="posture-details" hidden>
+      <div id="posture-details" class="locked">
         <details class="card collapsible step" data-accordion="posture" id="posture-step-2">
           <summary><h2><span class="step-number">2</span> Check the joint angles</h2></summary>
+          <div class="step-locked">Capture the posture first — take a photo, use the live camera or enter the angles by hand in step 1. <button type="button" class="button small" data-go-step1>Go to step 1</button></div>
+          <div class="step-content">
           <p class="hint">Angles marked <span class="tag tag-auto">auto</span> were measured from the image. If one looks wrong, drag its slider — you stay in control of the result.</p>
           <div id="angle-sliders" class="angle-sliders"></div>
+          </div>
         </details>
 
         <details class="card collapsible step" data-accordion="posture" id="posture-step-3">
           <summary><h2><span class="step-number">3</span> Describe the task</h2></summary>
+          <div class="step-locked">Capture the posture first — take a photo, use the live camera or enter the angles by hand in step 1. <button type="button" class="button small" data-go-step1>Go to step 1</button></div>
+          <div class="step-content">
 
           <fieldset class="choice-group">
             <legend>Work posture</legend>
@@ -263,10 +268,13 @@
               </label>
             </div>
           </fieldset>
+          </div>
         </details>
 
         <details class="card collapsible step" data-accordion="posture" id="posture-step-4">
           <summary><h2><span class="step-number">4</span> Risk result</h2><span id="step4-score" class="step-summary-badge"></span></summary>
+          <div class="step-locked">Capture the posture first — take a photo, use the live camera or enter the angles by hand in step 1. <button type="button" class="button small" data-go-step1>Go to step 1</button></div>
+          <div class="step-content">
           <div class="segmented" role="group" aria-label="Assessment method">
             <button type="button" class="segment" data-method="rula" aria-pressed="false">RULA</button>
             <button type="button" class="segment" data-method="reba" aria-pressed="false">REBA</button>
@@ -280,6 +288,7 @@
           <h3>What to change</h3>
           <ol id="recommendation-list" class="recommendation-list"></ol>
           <button type="button" class="button primary wide" id="save-assessment-button">Save assessment</button>
+          </div>
         </details>
       </div>
     </section>
@@ -382,6 +391,13 @@
         </div>
         <p class="hint" id="calibration-offset"></p>
       </details>
+    </section>
+
+    <!-- ============================ PRIORITY ACTIONS ============================ -->
+    <section id="view-priority" class="view" aria-labelledby="priority-title" hidden>
+      <a class="back-link" href="#risk">← Back to Risk</a>
+      <h1 id="priority-title" class="view-title">Priority actions</h1>
+      <div id="priority-page"></div>
     </section>
 
     <!-- ============================ RISK PROFILE ============================ -->
