@@ -82,10 +82,6 @@ function findById(list, id) {
   return null;
 }
 
-function formatSeconds(seconds) {
-  return Math.floor(seconds / 60) + ' min ' + Math.round(seconds % 60) + ' s';
-}
-
 function primaryResult(assessment) {
   return assessment.method === 'rula' ? assessment.rula : assessment.reba;
 }
@@ -104,18 +100,11 @@ export function refreshDashboardView() {
   for (const assessment of noiseAssessments) {
     if (RISK_RANK[assessment.riskLevel] >= RISK_RANK.high) overLimit++;
   }
-  // Average time to complete an assessment (a key efficiency metric).
-  let timedCount = 0;
-  let timedTotal = 0;
-  for (const assessment of postures) {
-    if (assessment.durationSeconds) { timedCount++; timedTotal += assessment.durationSeconds; }
-  }
   elements.summary.innerHTML =
     tile(workers.length, 'Workers', null) +
     tile(postures.length, 'Posture assessments', null) +
     tile(highPostures, 'High-risk postures', highPostures > 0 ? 'high' : 'low') +
-    tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low') +
-    tile(timedCount ? formatSeconds(timedTotal / timedCount) : '—', 'Average time per posture assessment' + (timedCount ? ' (' + timedCount + ')' : ''), null);
+    tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low');
 
   // ---- priority list ----
   const sorted = postures.slice().sort(function (first, second) {
