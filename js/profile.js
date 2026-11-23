@@ -99,7 +99,8 @@ export function refreshProfileView() {
       '<div class="card"><h2>Hazards</h2>' + renderHazardCards(profile) + '</div>' +
       '<div class="card"><h2>Risk matrix</h2>' + renderRiskMatrix(profile) + '</div>' +
       '<div class="card"><h2>4W1H for ' + escapeHtml(worker.name) + '</h2>' + render4W1H(profile) + '</div>' +
-      '<div class="card"><h2>User vs Work characteristics</h2><p class="hint">Each level of the framework, filled in with this worker\'s own findings.</p>' + renderGraph(profile) + '</div>' +
+      '<details class="card collapsible"><summary><h2>User vs Work characteristics</h2></summary>' +
+        '<p class="hint">Each level of the framework, filled in with this worker\'s own findings.</p>' + renderGraph(profile) + '</details>' +
       '<div class="card"><h2>Action plan</h2><p class="hint">Ordered by the hierarchy of controls — change the workplace before relying on rules or protective equipment. Tick an action when it is done, then re-assess.</p>' +
         renderActionPlan(profile, statuses, true) + '</div>');
 }
