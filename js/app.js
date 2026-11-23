@@ -84,6 +84,21 @@ function start() {
     }
   });
 
+  // Fold-out steps (Posture, Noise): opening one closes the others in the
+  // same group, so only one step is open at a time. The "toggle" event
+  // does not bubble, so it is caught on the way down (capture phase).
+  document.addEventListener('toggle', function (event) {
+    const opened = event.target;
+    if (!(opened instanceof HTMLDetailsElement) || !opened.open || !opened.dataset.accordion) {
+      return;
+    }
+    for (const other of document.querySelectorAll('details[data-accordion="' + opened.dataset.accordion + '"]')) {
+      if (other !== opened && other.open) {
+        other.open = false;
+      }
+    }
+  }, true);
+
   window.addEventListener('hashchange', function () { showView(viewFromHash()); });
 
   renderWorkerSelects();

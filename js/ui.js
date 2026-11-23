@@ -70,6 +70,19 @@ export function formatHours(hours) {
   return wholeHours + ' h ' + minutes + ' min';
 }
 
+// Opens one fold-out step (the others in its group close automatically)
+// and brings it into view.
+export function openStep(stepId) {
+  const step = document.getElementById(stepId);
+  if (!step) {
+    return;
+  }
+  step.open = true;
+  setTimeout(function () {
+    step.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
 let toastTimer = null;
 export function showToast(message) {
   const toast = document.getElementById('toast');

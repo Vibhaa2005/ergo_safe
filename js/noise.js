@@ -364,6 +364,7 @@ export function prepareNoiseReassessment(assessmentId) {
   }
   storage.saveSettings(changes);
   window.location.hash = '#noise';
+  document.getElementById('noise-step-2').open = true;
   window.scrollTo(0, 0);
 }
 
@@ -415,7 +416,7 @@ function addMeasuredLevel() {
   });
   saveDraftEntries(entries);
   elements.zoneInput.value = '';
-  showToast('Added to the worker\'s day.');
+  showToast('Added to the worker\'s day — see step 2.');
 }
 
 function addManualLevel() {
@@ -476,7 +477,9 @@ function renderExposure() {
   }
   elements.exposureRows.innerHTML = rows;
 
+  const stepDose = document.getElementById('noise-step2-dose');
   if (entries.length === 0) {
+    stepDose.innerHTML = '';
     renderNoiseReassessBanner(null);
     elements.exposureResults.innerHTML = '';
     elements.recommendations.innerHTML = '<li class="recommendation"><p>Measure or add the zones the worker spends time in to see their daily dose.</p></li>';
@@ -485,6 +488,9 @@ function renderExposure() {
 
   const analysis = analyseExposure(entries);
   renderNoiseReassessBanner(analysis);
+  // The folded "2 Daily exposure" title also shows the dose.
+  const selectedForTitle = analysis.results[standard.key];
+  stepDose.innerHTML = riskBadge(selectedForTitle.status.riskLevel, 'Dose ' + selectedForTitle.dosePercent.toFixed(0) + '%');
   const selected = analysis.results[standard.key];
   const otherKey = standard.key === 'niosh' ? 'india' : 'niosh';
   const other = analysis.results[otherKey];

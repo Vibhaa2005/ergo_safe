@@ -2,7 +2,7 @@
 // App files: served from cache, refreshed in the background.
 // Pose model + MediaPipe files (other websites): cached after first use.
 
-const CACHE_VERSION = 'ergosafe-v8';
+const CACHE_VERSION = 'ergosafe-v9';
 const RUNTIME_CACHE = 'ergosafe-runtime-v1';
 
 const APP_FILES = [
@@ -26,6 +26,7 @@ const APP_FILES = [
   './js/riskModel.js',
   './js/riskViews.js',
   './js/profile.js',
+  './js/priorityActions.js',
   './js/report.js',
   './report.html',
   './css/report.css',

@@ -1,15 +1,12 @@
 // dashboard.js
-// The Home screen: summary tiles, priority action list, noise results,
-// worker overview and data export.
+// The Home screen: summary tiles, noise results and data export.
 
 import * as storage from './storage.js';
 import { computeRula } from './rula.js';
 import { computeReba } from './reba.js';
 import { generateRecommendations } from './recommendations.js';
 import { analyseExposure, prepareNoiseReassessment } from './noise.js';
-import { prepareReassessment } from './posture.js';
-import { buildWorkerRiskProfile } from './riskModel.js';
-import { riskBadge, escapeHtml, formatDate, downloadTextFile, toCsv, showToast, RISK_LEVELS } from './ui.js';
+import { riskBadge, escapeHtml, formatDate, downloadTextFile, toCsv, showToast } from './ui.js';
 
 const RISK_RANK = { negligible: 0, low: 1, medium: 2, high: 3, veryhigh: 4 };
 
@@ -18,9 +15,7 @@ let elements = {};
 export function initDashboardView() {
   elements = {
     summary: document.getElementById('home-summary'),
-    priorityList: document.getElementById('home-priority-list'),
     noiseList: document.getElementById('home-noise-list'),
-    workerTable: document.getElementById('home-worker-table'),
   };
 
   document.getElementById('export-postures-csv').addEventListener('click', exportPosturesCsv);
@@ -36,21 +31,6 @@ export function initDashboardView() {
     }
   });
 
-  elements.priorityList.addEventListener('click', function (event) {
-    const reassessButton = event.target.closest('[data-reassess-posture]');
-    if (reassessButton) {
-      prepareReassessment(reassessButton.dataset.reassessPosture);
-      return;
-    }
-    const button = event.target.closest('[data-delete-posture]');
-    if (button && confirm('Delete this posture assessment and any after-fix re-assessments of it?')) {
-      const assessmentId = button.dataset.deletePosture;
-      for (const assessment of storage.getPostureAssessments()) {
-        if (assessment.baselineId === assessmentId) storage.deletePostureAssessment(assessment.id);
-      }
-      storage.deletePostureAssessment(assessmentId);
-    }
-  });
   elements.noiseList.addEventListener('click', function (event) {
     const reassessButton = event.target.closest('[data-reassess-noise]');
     if (reassessButton) {
@@ -64,13 +44,6 @@ export function initDashboardView() {
         if (assessment.baselineId === assessmentId) storage.deleteNoiseAssessment(assessment.id);
       }
       storage.deleteNoiseAssessment(assessmentId);
-    }
-  });
-  elements.workerTable.addEventListener('click', function (event) {
-    const button = event.target.closest('[data-open-profile]');
-    if (button) {
-      storage.saveSettings({ activeWorkerId: button.dataset.openProfile });
-      window.location.hash = '#risk-worker';
     }
   });
 }
@@ -106,43 +79,6 @@ export function refreshDashboardView() {
     tile(highPostures, 'High-risk postures', highPostures > 0 ? 'high' : 'low') +
     tile(overLimit, 'Over noise limit', overLimit > 0 ? 'high' : 'low');
 
-  // ---- priority list ----
-  const sorted = postures.slice().sort(function (first, second) {
-    const rankDifference = RISK_RANK[primaryResult(second).riskLevel] - RISK_RANK[primaryResult(first).riskLevel];
-    if (rankDifference !== 0) return rankDifference;
-    return primaryResult(second).finalScore / (second.method === 'rula' ? 7 : 15) - primaryResult(first).finalScore / (first.method === 'rula' ? 7 : 15);
-  });
-  if (sorted.length === 0) {
-    elements.priorityList.innerHTML = '<p class="empty">No posture assessments yet. Go to <a href="#posture">Posture</a> to make one, or load sample data below.</p>';
-  } else {
-    let html = '';
-    for (const assessment of sorted) {
-      const result = primaryResult(assessment);
-      const maxScore = assessment.method === 'rula' ? 7 : 15;
-      const topFix = assessment.recommendations && assessment.recommendations.length ? assessment.recommendations[0] : null;
-      const baseline = assessment.baselineId ? findById(postures, assessment.baselineId) : null;
-      let followUpText = '';
-      if (baseline) {
-        const before = primaryResult(baseline).finalScore;
-        const after = (baseline.method === 'rula' ? assessment.rula : assessment.reba).finalScore;
-        const change = before ? ((before - after) / before) * 100 : 0;
-        followUpText = '<p class="follow-up-note">After fix of "' + escapeHtml(baseline.task) + '": ' + baseline.method.toUpperCase() + ' ' + before + ' → ' + after +
-          ' (' + (change >= 0 ? '−' : '+') + Math.abs(change).toFixed(0) + '%)</p>';
-      }
-      html += '<article class="assessment-card risk-border-' + result.riskLevel + '">' +
-        (assessment.thumbnail ? '<img src="' + assessment.thumbnail + '" alt="Posture photo for ' + escapeHtml(assessment.task) + '">' : '<div class="thumb-placeholder" aria-hidden="true">' + assessment.method.toUpperCase() + '</div>') +
-        '<div class="assessment-body">' +
-          '<div class="assessment-title"><strong>' + escapeHtml(assessment.task) + '</strong>' + riskBadge(result.riskLevel, RISK_LEVELS[result.riskLevel].label + ' · ' + assessment.method.toUpperCase() + ' ' + result.finalScore + '/' + maxScore) + '</div>' +
-          '<p class="hint">' + escapeHtml(assessment.workerName) + ' · ' + formatDate(assessment.date) + '</p>' +
-          followUpText +
-          (topFix ? '<p><strong>' + escapeHtml(topFix.bodyPart) + ':</strong> ' + escapeHtml(topFix.action) + '</p>' : '') +
-          '<div class="card-actions"><button type="button" class="button small" data-reassess-posture="' + (assessment.baselineId || assessment.id) + '">Re-assess after fix</button>' +
-          '<button type="button" class="link-button" data-delete-posture="' + assessment.id + '">Delete</button></div>' +
-        '</div></article>';
-    }
-    elements.priorityList.innerHTML = html;
-  }
-
   // ---- noise list ----
   if (noiseAssessments.length === 0) {
     elements.noiseList.innerHTML = '<p class="empty">No noise assessments yet. Go to <a href="#noise">Noise</a> to measure.</p>';
@@ -167,34 +103,6 @@ export function refreshDashboardView() {
     elements.noiseList.innerHTML = html;
   }
 
-  // ---- worker table ----
-  if (workers.length === 0) {
-    elements.workerTable.innerHTML = '<p class="empty">No workers yet.</p>';
-  } else {
-    let html = '<table class="data-table"><thead><tr><th>Worker</th><th>Overall risk</th><th>Worst posture</th><th>Noise dose (NIOSH)</th><th><span class="visually-hidden">Profile</span></th></tr></thead><tbody>';
-    for (const worker of workers) {
-      let worst = null;
-      for (const assessment of postures) {
-        if (assessment.workerId === worker.id && (!worst || RISK_RANK[primaryResult(assessment).riskLevel] > RISK_RANK[primaryResult(worst).riskLevel])) {
-          worst = assessment;
-        }
-      }
-      let latestNoise = null;
-      for (const assessment of noiseAssessments) {
-        if (assessment.workerId === worker.id && (!latestNoise || assessment.date > latestNoise.date)) {
-          latestNoise = assessment;
-        }
-      }
-      const profile = buildWorkerRiskProfile(worker, postures, noiseAssessments);
-      const overall = profile.overallLevel === 'none' ? '—' : riskBadge(profile.overallLevel);
-      html += '<tr><td>' + escapeHtml(worker.name) + '<br><span class="hint">' + escapeHtml(worker.workstation || '') + '</span></td><td>' + overall + '</td><td>' +
-        (worst ? riskBadge(primaryResult(worst).riskLevel, worst.method.toUpperCase() + ' ' + primaryResult(worst).finalScore) : '—') + '</td><td>' +
-        (latestNoise ? riskBadge(latestNoise.riskLevel, latestNoise.nioshDosePercent.toFixed(0) + '%') : '—') + '</td>' +
-        '<td><button type="button" class="button small" data-open-profile="' + worker.id + '">Risk profile</button></td></tr>';
-    }
-    html += '</tbody></table>';
-    elements.workerTable.innerHTML = html;
-  }
 }
 
 function tile(value, label, levelKey) {

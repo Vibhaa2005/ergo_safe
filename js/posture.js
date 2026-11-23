@@ -7,7 +7,7 @@ import { computeRula } from './rula.js';
 import { computeReba } from './reba.js';
 import { generateRecommendations } from './recommendations.js';
 import * as storage from './storage.js';
-import { riskBadge, escapeHtml, showToast, RISK_LEVELS } from './ui.js';
+import { riskBadge, escapeHtml, showToast, openStep, RISK_LEVELS } from './ui.js';
 
 const ANGLE_DEFINITIONS = [
   { key: 'trunk', label: 'Trunk', min: -45, max: 120, help: '0° upright · + bending forward · − leaning back' },
@@ -393,6 +393,7 @@ function freezeLiveFrame() {
     setStatus('Frame frozen, but no body was found in it. Set the angles by hand.', true);
   }
   recompute();
+  openStep('posture-step-2');
 }
 
 async function switchCamera() {
@@ -434,7 +435,6 @@ function startManualMode() {
   resetAnglesToDefaults();
   setStatus('Manual mode: set each angle with its slider (measure from a photo or by observation).');
   startDetails(false);
-  elements.details.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function startDetails(fromCamera) {
@@ -444,6 +444,11 @@ function startDetails(fromCamera) {
     updateAllSliders();
   }
   recompute();
+  // Move on to "2 Check the joint angles" — except during live camera,
+  // where the camera view in step 1 must stay open.
+  if (!state.liveRunning) {
+    openStep('posture-step-2');
+  }
 }
 
 // ---------------------------------------------------------------
@@ -538,6 +543,8 @@ function renderScoreSummary() {
     ? '<p class="placeholder-warning">' + riskBadge('medium', unmeasuredCount + ' of 6 angles not measured') +
       ' They use neutral placeholder values — set their sliders before trusting this score.</p>'
     : '';
+  // The folded "4 Risk result" title also shows the score.
+  document.getElementById('step4-score').innerHTML = riskBadge(active.riskLevel, active.method + ' ' + active.finalScore + '/' + active.maxScore);
   elements.scoreSummary.className = 'score-summary risk-border-' + active.riskLevel;
   elements.scoreSummary.innerHTML = placeholderWarning +
     '<div class="score-big"><span class="score-number">' + active.finalScore + '</span><span class="score-max">/ ' + active.maxScore + '</span></div>' +
@@ -626,6 +633,7 @@ export function prepareReassessment(assessmentId) {
   }
   renderReassessBanner();
   renderQuota();
+  document.getElementById('posture-step-1').open = true;
   window.location.hash = '#posture';
   window.scrollTo(0, 0);
 }

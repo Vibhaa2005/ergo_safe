@@ -364,6 +364,18 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 }
 .collapsible[open] > summary::after { transform: rotate(-135deg); }
 .collapsible[open] > summary { margin-bottom: 8px; }
+
+/* Fold-out steps on the Posture and Noise screens */
+.step { scroll-margin-top: 72px; }
+.step > summary h2 { flex: 1; min-width: 0; }
+.step-summary-badge:empty { display: none; }
+.step-summary-badge .badge { font-size: 0.8rem; padding: 2px 8px 2px 5px; }
+.step-summary-badge .badge .icon { width: 15px; height: 15px; }
+.step:not([open]) { padding-top: 10px; padding-bottom: 10px; }
+.optional { font-weight: 400; font-size: 0.9rem; color: var(--colour-text-muted); }
+
+/* Risk screen: export + priority actions buttons */
+.risk-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 8px 0 16px; max-width: 360px; }
 .worker-info { display: flex; flex-direction: column; }
 .worker-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 

@@ -47,19 +47,8 @@
       <div id="home-summary" class="tile-row" aria-live="polite"></div>
 
       <div class="card">
-        <h2>Priority actions</h2>
-        <p class="hint">Every saved posture assessment, highest risk first.</p>
-        <div id="home-priority-list" class="assessment-list"></div>
-      </div>
-
-      <div class="card">
         <h2>Noise exposure</h2>
         <div id="home-noise-list" class="assessment-list"></div>
-      </div>
-
-      <div class="card">
-        <h2>Workers</h2>
-        <div id="home-worker-table" class="table-wrap"></div>
       </div>
 
       <div class="card">
@@ -149,8 +138,8 @@
     <section id="view-posture" class="view" aria-labelledby="posture-title" hidden>
       <h1 id="posture-title" class="view-title">Posture assessment</h1>
 
-      <div class="card">
-        <h2><span class="step-number">1</span> Capture the posture</h2>
+      <details class="card collapsible step" data-accordion="posture" id="posture-step-1" open>
+        <summary><h2><span class="step-number">1</span> Capture the posture</h2></summary>
         <p class="hint">Photograph the worker <strong>from the side</strong>, whole body in frame, at the worst moment of the task. Everything stays on this device.</p>
         <div id="reassess-banner" class="reassess-banner" hidden></div>
         <label class="field">
@@ -184,17 +173,17 @@
             <button type="button" class="button" id="stop-camera-button">Stop camera</button>
           </div>
         </div>
-      </div>
+      </details>
 
       <div id="posture-details" hidden>
-        <div class="card">
-          <h2><span class="step-number">2</span> Check the joint angles</h2>
+        <details class="card collapsible step" data-accordion="posture" id="posture-step-2">
+          <summary><h2><span class="step-number">2</span> Check the joint angles</h2></summary>
           <p class="hint">Angles marked <span class="tag tag-auto">auto</span> were measured from the image. If one looks wrong, drag its slider — you stay in control of the result.</p>
           <div id="angle-sliders" class="angle-sliders"></div>
-        </div>
+        </details>
 
-        <div class="card">
-          <h2><span class="step-number">3</span> Describe the task</h2>
+        <details class="card collapsible step" data-accordion="posture" id="posture-step-3">
+          <summary><h2><span class="step-number">3</span> Describe the task</h2></summary>
 
           <fieldset class="choice-group">
             <legend>Work posture</legend>
@@ -279,10 +268,10 @@
               </label>
             </div>
           </fieldset>
-        </div>
+        </details>
 
-        <div class="card" id="results-card">
-          <h2><span class="step-number">4</span> Risk result</h2>
+        <details class="card collapsible step" data-accordion="posture" id="posture-step-4">
+          <summary><h2><span class="step-number">4</span> Risk result</h2><span id="step4-score" class="step-summary-badge"></span></summary>
           <div class="segmented" role="group" aria-label="Assessment method">
             <button type="button" class="segment" data-method="rula" aria-pressed="false">RULA</button>
             <button type="button" class="segment" data-method="reba" aria-pressed="false">REBA</button>
@@ -296,7 +285,7 @@
           <h3>What to change</h3>
           <ol id="recommendation-list" class="recommendation-list"></ol>
           <button type="button" class="button primary wide" id="save-assessment-button">Save assessment</button>
-        </div>
+        </details>
       </div>
     </section>
 
@@ -304,8 +293,8 @@
     <section id="view-noise" class="view" aria-labelledby="noise-title" hidden>
       <h1 id="noise-title" class="view-title">Noise exposure</h1>
 
-      <div class="card">
-        <h2>Live sound level</h2>
+      <details class="card collapsible step" data-accordion="noise" id="noise-step-1" open>
+        <summary><h2><span class="step-number">1</span> Measure the sound level</h2></summary>
         <label class="field">
           <span>Worker being assessed</span>
           <select id="noise-worker-select" data-worker-select></select>
@@ -349,10 +338,10 @@
           </div>
           <button type="button" class="button" id="noise-add-to-log-button">Add measured level</button>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
-        <h2>Daily exposure</h2>
+      <details class="card collapsible step" data-accordion="noise" id="noise-step-2">
+        <summary><h2><span class="step-number">2</span> Daily exposure &amp; actions</h2><span id="noise-step2-dose" class="step-summary-badge"></span></summary>
         <div id="noise-reassess-banner" class="reassess-banner" hidden></div>
         <label class="field">
           <span>Exposure standard</span>
@@ -380,10 +369,10 @@
         <h3>What to do</h3>
         <ol id="noise-recommendations" class="recommendation-list"></ol>
         <button type="button" class="button primary wide" id="noise-save-button">Save noise assessment</button>
-      </div>
+      </details>
 
-      <div class="card">
-        <h2>Calibrate the microphone</h2>
+      <details class="card collapsible step" data-accordion="noise" id="noise-step-3">
+        <summary><h2><span class="step-number">3</span> Calibrate the microphone <span class="optional">(optional)</span></h2></summary>
         <p class="hint">Phone microphones differ by several decibels. For accurate readings, place the phone next to a calibrated sound level meter, play a steady sound, start measuring, and enter the meter's reading.</p>
         <div class="form-grid">
           <label class="field">
@@ -397,7 +386,7 @@
           <button type="button" class="button" id="reset-calibration-button">Reset</button>
         </div>
         <p class="hint" id="calibration-offset"></p>
-      </div>
+      </details>
     </section>
 
     <!-- ============================ RISK PROFILE ============================ -->
