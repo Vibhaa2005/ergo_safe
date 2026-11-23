@@ -3,7 +3,7 @@
 
 import * as storage from './storage.js';
 import { initDashboardView, refreshDashboardView } from './dashboard.js';
-import { initWorkersView, refreshWorkersView } from './workers.js';
+import { initWorkersView, refreshWorkersView, leaveWorkersView } from './workers.js';
 import { initPostureView, refreshPostureView, leavePostureView } from './posture.js';
 import { initNoiseView, refreshNoiseView, leaveNoiseView } from './noise.js';
 import { initProfileView, refreshProfileView, refreshFactoryView } from './profile.js';
@@ -14,7 +14,7 @@ import { escapeHtml } from './ui.js';
 // functions to redraw it / clean up when leaving it.
 const VIEWS = {
   home: { section: 'home', tab: 'home', refresh: refreshDashboardView, leave: null },
-  workers: { section: 'workers', tab: 'workers', refresh: refreshWorkersView, leave: null },
+  workers: { section: 'workers', tab: 'workers', refresh: refreshWorkersView, leave: leaveWorkersView },
   posture: { section: 'posture', tab: 'posture', refresh: refreshPostureView, leave: leavePostureView },
   noise: { section: 'noise', tab: 'noise', refresh: refreshNoiseView, leave: leaveNoiseView },
   risk: { section: 'risk', tab: 'risk', refresh: refreshFactoryView, leave: null },              // all workers

@@ -78,6 +78,11 @@ export function refreshWorkersView() {
   renderWorkerList();
 }
 
+// Leaving the Workers page: next time it opens, every worker starts closed.
+export function leaveWorkersView() {
+  openWorkerIds.clear();
+}
+
 function openForm(worker) {
   elements.form.hidden = false;
   elements.formTitle.textContent = worker ? 'Edit worker' : 'Add worker';
@@ -115,7 +120,8 @@ function saveWorkerFromForm(event) {
     taskType: elements.task.value,
     workstation: elements.workstation.value.trim(),
   };
-  openWorkerIds.add(worker.id);          // show the saved worker's profile
+  openWorkerIds.clear();                 // show only the saved worker's profile
+  openWorkerIds.add(worker.id);
   storage.saveWorker(worker);
   storage.saveSettings({ activeWorkerId: worker.id });
   closeForm();
@@ -132,7 +138,8 @@ function renderWorkerList() {
   // on the right; opening it shows their anthropometric profile.
   let html = '<p class="hint">Tap a worker to open their anthropometric profile.</p>';
   for (const worker of workers) {
-    html += '<details class="worker-fold" data-worker-id="' + worker.id + '"' + (openWorkerIds.has(worker.id) ? ' open' : '') + '>' +
+    // data-accordion: opening one worker closes the others (handled in app.js).
+    html += '<details class="worker-fold" data-accordion="workers" data-worker-id="' + worker.id + '"' + (openWorkerIds.has(worker.id) ? ' open' : '') + '>' +
       '<summary class="worker-card">' +
         '<strong class="worker-name">' + escapeHtml(worker.name) + '</strong>' +
         '<span class="hint worker-details">' + worker.statureCm + ' cm · ' + (worker.workPosture === 'seated' ? 'Seated' : 'Standing') + ' · ' +
