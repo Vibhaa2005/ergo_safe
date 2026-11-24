@@ -658,3 +658,11 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 .hf-about { border-color: var(--colour-primary); background: var(--colour-primary-soft); color: var(--colour-text); text-decoration: none; }
 .hf-about strong { color: var(--colour-primary); }
 .hf-about:hover { background: #c9e6e4; }
+.pros-cons { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.pros, .cons { border-radius: 10px; padding: 10px 14px; border-left: 6px solid var(--risk-low); background: var(--risk-low-soft); }
+.cons { border-left-color: var(--risk-medium); background: var(--risk-medium-soft); }
+.pros h3, .cons h3 { margin: 0 0 6px; }
+.pros h3 { color: var(--risk-low); }
+.cons h3 { color: var(--risk-medium); }
+.pros ul, .cons ul { margin: 0; padding-left: 18px; }
+.pros li, .cons li { margin: 4px 0; }
