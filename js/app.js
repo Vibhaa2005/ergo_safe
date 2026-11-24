@@ -14,6 +14,7 @@ import { escapeHtml } from './ui.js';
 // functions to redraw it / clean up when leaving it.
 const VIEWS = {
   home: { section: 'home', tab: 'home', refresh: refreshDashboardView, leave: null },
+  about: { section: 'about', tab: 'home', refresh: function () {}, leave: null },                // the issue, 4W1H, graph
   workers: { section: 'workers', tab: 'workers', refresh: refreshWorkersView, leave: leaveWorkersView },
   posture: { section: 'posture', tab: 'posture', refresh: refreshPostureView, leave: leavePostureView },
   noise: { section: 'noise', tab: 'noise', refresh: refreshNoiseView, leave: leaveNoiseView },

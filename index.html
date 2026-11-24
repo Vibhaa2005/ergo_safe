@@ -44,6 +44,14 @@
         </div>
       </div>
 
+      <a class="about-link card" href="#about">
+        <span class="about-link-text">
+          <strong>The human factors issue &amp; our approach</strong>
+          <span class="hint">Why this matters, the 4W1H and the User vs Work Characteristics graph</span>
+        </span>
+        <span class="about-link-arrow" aria-hidden="true">→</span>
+      </a>
+
       <div id="home-summary" class="tile-row" aria-live="polite"></div>
 
       <div class="card">
@@ -59,6 +67,154 @@
           <button type="button" class="button danger" id="clear-all-data">Delete all data</button>
         </div>
       </div>
+    </section>
+
+    <!-- ============================ ABOUT THE ISSUE ============================ -->
+    <section id="view-about" class="view" aria-labelledby="about-title" hidden>
+      <a class="back-link" href="#home">← Back to Home</a>
+      <h1 id="about-title" class="view-title">The issue &amp; our approach</h1>
+
+      <details class="card collapsible step" data-accordion="about" id="about-step-1" open>
+        <summary><h2><span class="step-number">1</span> The human factors issue</h2></summary>
+        <p class="about-principle">Work should be designed around the <strong>capabilities and limits of the human</strong>, not the other way round.</p>
+        <p>In factories the machines, pallets and presses work exactly as designed. What fails is the <strong>fit between the work and the human</strong>. The work exceeds three human limits:</p>
+        <div class="mismatch-list">
+          <div class="mismatch">
+            <h3>Body size varies</h3>
+            <p><span class="mismatch-label">Limit</span> Indian adults range from about 143 cm (small woman) to 176 cm (tall man).</p>
+            <p><span class="mismatch-label">Work demand</span> One fixed workstation height; items on the floor or above the shoulder.</p>
+            <p><span class="mismatch-label">Result</span> The worker bends, stoops, reaches or shrugs. The awkward posture is <strong>caused by the design</strong>.</p>
+          </div>
+          <div class="mismatch">
+            <h3>Body tolerates limited load</h3>
+            <p><span class="mismatch-label">Limit</span> Muscles, joints and spinal discs cope with neutral postures, not bent, twisted or raised ones held for long.</p>
+            <p><span class="mismatch-label">Work demand</span> Awkward postures held or repeated for hours, with loads and little recovery.</p>
+            <p><span class="mismatch-label">Result</span> Fatigue, then musculoskeletal disorders of the back, neck, shoulders, wrists and knees.</p>
+          </div>
+          <div class="mismatch mismatch-noise">
+            <h3>Hearing is fragile</h3>
+            <p><span class="mismatch-label">Limit</span> The ear's sensory cells do not regrow, and the ear must also catch speech and alarms.</p>
+            <p><span class="mismatch-label">Work demand</span> Hours in zones above 85 to 90 dB(A): presses, looms, grinders.</p>
+            <p><span class="mismatch-label">Result</span> Permanent hearing loss; masked warnings; more accidents.</p>
+          </div>
+        </div>
+        <p class="about-insight"><strong>Key insight:</strong> many harmful postures are not a bad habit. They come from a workstation that does not fit this worker's body. Fix the workstation, not the worker.</p>
+      </details>
+
+      <details class="card collapsible step" data-accordion="about" id="about-step-2">
+        <summary><h2><span class="step-number">2</span> Why it matters and why it goes unmanaged</h2></summary>
+        <div class="tile-row about-stats">
+          <div class="tile tile-high"><div class="tile-value">1.71 bn</div><div class="tile-label">people with musculoskeletal conditions, the leading cause of disability (WHO)</div></div>
+          <div class="tile tile-high"><div class="tile-value">71.6%</div><div class="tile-label">of power-loom weavers studied in Tamil Nadu had hearing loss</div></div>
+          <div class="tile"><div class="tile-value">&gt;90%</div><div class="tile-label">of Indian workers are informal, rarely with an ergonomist</div></div>
+        </div>
+        <p>The harm is <strong>slow, invisible and permanent</strong>: by the time a worker notices, the damage is done. The risk must be found <em>before</em> symptoms appear.</p>
+        <h3>Why the risk goes unmanaged</h3>
+        <ol>
+          <li>RULA, REBA and noise surveys need <strong>trained assessors</strong> and paper worksheets.</li>
+          <li>Noise needs a <strong>sound level meter</strong> small factories do not own.</li>
+          <li>Results stay on paper: the <strong>supervisor</strong>, who can change the workplace, cannot see who is most at risk, what to fix first, or whether a fix worked.</li>
+        </ol>
+        <div class="problem-statement">
+          <h3>Problem statement</h3>
+          <p>Factory workers are exposed to harmful working postures and harmful noise because workstations, tasks and work environments are not designed around human body dimensions, physical tolerance and hearing. The resulting musculoskeletal disorders and hearing loss are slow, invisible and permanent, and they persist because supervisors have no practical way to measure the risk, understand it, act on it, or check that their fixes worked.</p>
+        </div>
+      </details>
+
+      <details class="card collapsible step" data-accordion="about" id="about-step-3">
+        <summary><h2><span class="step-number">3</span> The two checks</h2></summary>
+        <div class="check-list">
+          <div class="check-item">
+            <span class="check-tick" aria-hidden="true">✓</span>
+            <div><strong>Is it a human issue? Yes.</strong> The work's heights, loads, durations and sound levels exceed human limits. The fix is to change the work to fit the human.</div>
+          </div>
+          <div class="check-item">
+            <span class="check-tick" aria-hidden="true">✓</span>
+            <div><strong>Can it be a progressive web app? Yes.</strong> A phone has a camera (posture), a microphone (noise) and enough power to detect the pose inside the browser. It installs from a link, works offline and needs no app store.</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="card collapsible step" data-accordion="about" id="about-step-4">
+        <summary><h2><span class="step-number">4</span> 4W1H analysis</h2></summary>
+        <dl class="four-w">
+          <div><dt>Who is facing it?</dt><dd>
+            <ul>
+              <li>Factory workers lifting, feeding machines, assembling, packing or inspecting, from 143 cm to 176 cm tall.</li>
+              <li>Workers in loud zones.</li>
+              <li><strong>Supervisors</strong> with no ergonomics training: the users of this app.</li>
+            </ul>
+            <span class="graph-tag">feeds Anthropometry</span></dd></div>
+          <div><dt>When does it happen?</dt><dd>
+            <ul>
+              <li>When an awkward posture is held or repeated: risk depends on how bad, how long and how often.</li>
+              <li>Noise adds up over the shift: a level safe for 1 hour is harmful for 8.</li>
+            </ul>
+            <span class="graph-tag">feeds Biomechanics</span></dd></div>
+          <div><dt>Where does it happen?</dt><dd>
+            <ul>
+              <li>At workstations whose heights and reach do not match the worker.</li>
+              <li>In loud zones such as press shops and weaving sections, where noise also masks speech and alarms.</li>
+            </ul>
+            <span class="graph-tag">feeds Information handling</span></dd></div>
+          <div><dt>What is the issue?</dt><dd>
+            <ol>
+              <li>Awkward postures, with load, poor grip and repetition.</li>
+              <li>Workstation misfit: the root cause.</li>
+              <li>Excess daily noise dose.</li>
+              <li>An assessment gap: risks are rarely measured, acted on or re-checked.</li>
+            </ol></dd></div>
+          <div><dt>How is it solved?</dt><dd>
+            <div class="loop" aria-label="Measure, score, fix, re-assess, track, then repeat">
+              <span class="loop-step"><strong>Measure</strong>photo, mic, height</span>
+              <span class="loop-arrow" aria-hidden="true">→</span>
+              <span class="loop-step"><strong>Score</strong>RULA, REBA, noise dose</span>
+              <span class="loop-arrow" aria-hidden="true">→</span>
+              <span class="loop-step"><strong>Fix</strong>worker-sized actions</span>
+              <span class="loop-arrow" aria-hidden="true">→</span>
+              <span class="loop-step"><strong>Re-assess</strong>before / after</span>
+              <span class="loop-arrow" aria-hidden="true">→</span>
+              <span class="loop-step"><strong>Track</strong>factory ranking</span>
+              <span class="loop-arrow" aria-hidden="true">↺</span>
+            </div></dd></div>
+        </dl>
+      </details>
+
+      <details class="card collapsible step" data-accordion="about" id="about-step-5">
+        <summary><h2><span class="step-number">5</span> User vs Work Characteristics graph</h2></summary>
+        <p class="hint">ErgoSafe is built level by level along the diagonal. Tap a level to open the screen that solves it. Every worker also gets this graph filled with their own findings on the Risk screen.</p>
+        <div class="table-wrap">
+          <div class="hf-graph about-graph" role="table" aria-label="User versus work characteristics graph: how ErgoSafe addresses each level">
+            <div class="hf-axis-y" aria-hidden="true">User characteristics ↑</div>
+            <div class="hf-row-label" role="rowheader">Affective needs</div>
+            <div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div>
+            <a class="hf-cell hf-diagonal hf-about" role="cell" href="#risk"><strong>5. Aesthetic evaluation</strong><p>Calm, consistent, step-by-step design that supervisors accept and trust. Checked with a usability survey.</p></a>
+            <div class="hf-row-label" role="rowheader">Effective needs</div>
+            <div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div>
+            <a class="hf-cell hf-diagonal hf-about" role="cell" href="#priority"><strong>4. Functional evaluation</strong><p>Re-assess after a fix: before/after reduction. HIRA matrix puts posture and noise on one scale.</p></a>
+            <div class="hf-cell" role="cell"></div>
+            <div class="hf-row-label" role="rowheader">Cognitive utility</div>
+            <div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div>
+            <a class="hf-cell hf-diagonal hf-about" role="cell" href="#noise"><strong>3. Information handling</strong><p>Noise dose and time allowed; risk shown as colour, icon and word; ranked factory table.</p></a>
+            <div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div>
+            <div class="hf-row-label" role="rowheader">Dynamic physical requirement</div>
+            <div class="hf-cell" role="cell"></div>
+            <a class="hf-cell hf-diagonal hf-about" role="cell" href="#posture"><strong>2. Biomechanics</strong><p>Photo → pose detection → joint angles → RULA / REBA, with fixes for the worst posture.</p></a>
+            <div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div>
+            <div class="hf-row-label" role="rowheader">Static physical requirement</div>
+            <a class="hf-cell hf-diagonal hf-about" role="cell" href="#workers"><strong>1. Anthropometry</strong><p>Worker's percentile and workstation heights sized to their body; ranges for shared stations.</p></a>
+            <div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div><div class="hf-cell" role="cell"></div>
+            <div></div><div></div>
+            <div class="hf-column-label" role="columnheader">Static physical dimensions</div>
+            <div class="hf-column-label" role="columnheader">Dynamic</div>
+            <div class="hf-column-label" role="columnheader">Operability</div>
+            <div class="hf-column-label" role="columnheader">Utility</div>
+            <div class="hf-column-label" role="columnheader">Art</div>
+            <div></div><div class="hf-axis-x" aria-hidden="true">Work characteristics →</div>
+          </div>
+        </div>
+      </details>
+
     </section>
 
     <!-- ============================ WORKERS ============================ -->

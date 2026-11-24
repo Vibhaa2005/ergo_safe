@@ -628,3 +628,33 @@ html.high-contrast .risk-veryhigh { background: var(--risk-veryhigh); }
 .posture-summary .worst-row td { background: var(--risk-high-soft); }
 .worst-label { font-size: 0.72rem; font-weight: 750; color: var(--risk-high); }
 .overall-posture-line { margin-top: 8px; padding: 8px 12px; border-left: 6px solid var(--risk-high); background: var(--colour-surface-muted); border-radius: 6px; }
+
+/* ---------- About the issue (Home link + page) ---------- */
+.about-link { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--colour-text); border-left: 6px solid var(--colour-primary); min-height: var(--touch); }
+.about-link:hover { background: var(--colour-primary-soft); }
+.about-link-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.about-link-text strong { color: var(--colour-primary); }
+.about-link-arrow { font-size: 1.5rem; font-weight: 700; color: var(--colour-primary); }
+.about-principle { font-size: 1.05rem; padding: 10px 14px; border-left: 5px solid var(--colour-primary); background: var(--colour-primary-soft); border-radius: 6px; }
+.mismatch-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 10px 0; }
+.mismatch { border: 1px solid var(--colour-border); border-top: 5px solid var(--risk-high); border-radius: 10px; padding: 10px 12px; background: var(--colour-surface); }
+.mismatch-noise { border-top-color: var(--risk-medium); }
+.mismatch h3 { margin: 0 0 6px; font-size: 1rem; }
+.mismatch p { margin: 6px 0; font-size: 0.92rem; }
+.mismatch-label { display: block; font-size: 0.72rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.04em; color: var(--colour-text-muted); }
+.about-insight { padding: 10px 14px; background: var(--colour-surface-muted); border-radius: 8px; }
+.about-stats .tile-value { font-size: 1.6rem; }
+.problem-statement { border: 2px solid var(--colour-primary); border-radius: 10px; padding: 10px 14px; background: var(--colour-primary-soft); margin-top: 12px; }
+.problem-statement h3 { margin: 0 0 6px; color: var(--colour-primary); }
+.problem-statement p { margin: 0; }
+.check-list { display: grid; gap: 10px; }
+.check-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--risk-low-soft); }
+.check-tick { display: inline-grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--risk-low); color: #ffffff; font-weight: 800; }
+.graph-tag { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 650; color: var(--colour-primary); background: var(--colour-primary-soft); }
+.loop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.loop-step { display: flex; flex-direction: column; padding: 6px 10px; border: 2px solid var(--colour-primary); border-radius: 8px; background: var(--colour-primary-soft); font-size: 0.82rem; color: var(--colour-text-muted); }
+.loop-step strong { color: var(--colour-primary); font-size: 0.92rem; }
+.loop-arrow { font-weight: 800; color: var(--colour-primary); }
+.hf-about { border-color: var(--colour-primary); background: var(--colour-primary-soft); color: var(--colour-text); text-decoration: none; }
+.hf-about strong { color: var(--colour-primary); }
+.hf-about:hover { background: #c9e6e4; }
